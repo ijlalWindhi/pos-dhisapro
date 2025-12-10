@@ -29,6 +29,7 @@
   --color-warning-100: #fef3c7;
   --color-warning-500: #f59e0b;
   --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
 
   /* Colors - Danger (Red) */
   --color-danger-50: #fef2f2;
@@ -61,15 +62,15 @@
   --text-muted: #9ca3af;
   --text-inverse: #ffffff;
 
-  /* Typography - Larger for accessibility */
+  /* Typography - Optimized for readability */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-size-xs: 0.875rem;    /* 14px */
-  --font-size-sm: 1rem;        /* 16px */
-  --font-size-base: 1.125rem;  /* 18px */
-  --font-size-lg: 1.25rem;     /* 20px */
-  --font-size-xl: 1.5rem;      /* 24px */
-  --font-size-2xl: 1.875rem;   /* 30px */
-  --font-size-3xl: 2.25rem;    /* 36px */
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 0.9375rem; /* 15px */
+  --font-size-lg: 1rem;       /* 16px */
+  --font-size-xl: 1.125rem;   /* 18px */
+  --font-size-2xl: 1.375rem;  /* 22px */
+  --font-size-3xl: 1.625rem;  /* 26px */
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
@@ -106,8 +107,8 @@
   --transition-slow: 300ms ease;
 
   /* Layout */
-  --sidebar-width: 280px;
-  --header-height: 72px;
+  --sidebar-width: 240px;
+  --header-height: 60px;
 }
 
 /* Reset & Base Styles */
@@ -128,7 +129,7 @@ html {
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--text-primary);
   background-color: var(--bg-secondary);
   min-height: 100vh;
@@ -162,7 +163,7 @@ a:hover {
 
 /* Focus styles for accessibility */
 :focus-visible {
-  outline: 3px solid var(--color-primary-400);
+  outline: 2px solid var(--color-primary-400);
   outline-offset: 2px;
 }
 
@@ -196,8 +197,8 @@ a:hover {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -225,21 +226,36 @@ a:hover {
 }
 
 .spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid var(--color-gray-200);
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-gray-200);
   border-top-color: var(--color-primary-600);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 .spinner-lg {
-  width: 48px;
-  height: 48px;
-  border-width: 4px;
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
 }
 
 /* Toast customization */
 .toast-container {
   font-size: var(--font-size-sm) !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  :root {
+    --font-size-xs: 0.6875rem;  /* 11px */
+    --font-size-sm: 0.8125rem;  /* 13px */
+    --font-size-base: 0.875rem; /* 14px */
+    --font-size-lg: 0.9375rem;  /* 15px */
+    --font-size-xl: 1rem;       /* 16px */
+    --font-size-2xl: 1.125rem;  /* 18px */
+    --font-size-3xl: 1.25rem;   /* 20px */
+    --sidebar-width: 260px;
+    --header-height: 54px;
+  }
 }

@@ -130,10 +130,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <button
               onClick={handleSignOut}
-              className="btn btn-ghost btn-icon btn-sm"
+              className="btn btn-danger btn-icon btn-sm"
               title="Keluar"
             >
-              <LogOut size={20} />
+              <LogOut size={20} /> Keluar
             </button>
           </div>
         </div>

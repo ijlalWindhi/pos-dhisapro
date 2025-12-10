@@ -35,7 +35,7 @@ export function LoginPage() {
     <div className="login-page">
       <div className="login-container">
         <div className="login-logo">
-          <Store size={48} />
+          <Store size={32} />
         </div>
         <h1 className="login-title">POS DhisaPro</h1>
         <p className="login-subtitle">Masuk untuk mengelola toko Anda</p>
@@ -46,7 +46,7 @@ export function LoginPage() {
             <input
               type="email"
               id="email"
-              className="form-input form-input-lg"
+              className="form-input"
               placeholder="email@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -61,7 +61,7 @@ export function LoginPage() {
             <input
               type="password"
               id="password"
-              className="form-input form-input-lg"
+              className="form-input"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -73,12 +73,13 @@ export function LoginPage() {
           
           <button 
             type="submit" 
-            className="btn btn-primary btn-lg btn-full"
+            className="btn btn-primary btn-full"
             disabled={isLoading}
+            style={{ marginTop: 'var(--spacing-2)' }}
           >
             {isLoading ? (
               <>
-                <Loader2 size={20} className="animate-spin" />
+                <Loader2 size={18} className="animate-spin" />
                 <span>Memproses...</span>
               </>
             ) : (
