@@ -5,15 +5,9 @@ import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from './hooks/useProducts';
 import { useActiveCategories } from '@/features/settings/hooks/useCategories';
+import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
 import type { Product, Category } from '@/types';
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(amount);
-};
 
 const emptyFormData = {
   name: '',
@@ -359,22 +353,24 @@ export function ProductsPage() {
                   <div className="form-group">
                     <label className="form-label form-label-required">Harga Beli</label>
                     <input
-                      type="number"
+                      type="text"
                       className="form-input"
                       placeholder="0"
-                      value={formData.buyPrice || ''}
-                      onChange={(e) => setFormData({ ...formData, buyPrice: parseInt(e.target.value) || 0 })}
+                      inputMode="numeric"
+                      value={formatNumber(formData.buyPrice)}
+                      onChange={(e) => setFormData({ ...formData, buyPrice: parseNumber(e.target.value) })}
                       required
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label form-label-required">Harga Jual</label>
                     <input
-                      type="number"
+                      type="text"
                       className="form-input"
                       placeholder="0"
-                      value={formData.price || ''}
-                      onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                      inputMode="numeric"
+                      value={formatNumber(formData.price)}
+                      onChange={(e) => setFormData({ ...formData, price: parseNumber(e.target.value) })}
                       required
                     />
                   </div>
@@ -384,22 +380,24 @@ export function ProductsPage() {
                   <div className="form-group">
                     <label className="form-label form-label-required">Stok Awal</label>
                     <input
-                      type="number"
+                      type="text"
                       className="form-input"
                       placeholder="0"
-                      value={formData.stock || ''}
-                      onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
+                      inputMode="numeric"
+                      value={formatNumber(formData.stock)}
+                      onChange={(e) => setFormData({ ...formData, stock: parseNumber(e.target.value) })}
                       required
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label form-label-required">Stok Minimum</label>
                     <input
-                      type="number"
+                      type="text"
                       className="form-input"
                       placeholder="0"
-                      value={formData.minStock || ''}
-                      onChange={(e) => setFormData({ ...formData, minStock: parseInt(e.target.value) || 0 })}
+                      inputMode="numeric"
+                      value={formatNumber(formData.minStock)}
+                      onChange={(e) => setFormData({ ...formData, minStock: parseNumber(e.target.value) })}
                       required
                     />
                     <p className="text-xs text-gray-400 mt-1">Peringatan jika stok di bawah ini</p>

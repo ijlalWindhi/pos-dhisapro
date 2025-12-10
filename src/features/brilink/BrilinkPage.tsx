@@ -3,6 +3,7 @@ import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartph
 import { MainLayout } from '@/components/layout';
 import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
 import type { BRILinkTransactionType, BRILinkFormData } from '@/types';
 
 const transactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet }[] = [
@@ -13,13 +14,6 @@ const transactionTypes: { value: BRILinkTransactionType; label: string; icon: ty
   { value: 'topup', label: 'Top Up', icon: Smartphone },
 ];
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(amount);
-};
 
 const emptyFormData: BRILinkFormData = {
   transactionType: 'transfer',
@@ -222,33 +216,36 @@ export function BrilinkPage() {
                   <div className="form-group">
                     <label className="form-label form-label-required">Nominal</label>
                     <input
-                      type="number"
+                      type="text"
                       className="form-input"
                       placeholder="0"
-                      value={formData.amount || ''}
-                      onChange={(e) => setFormData({ ...formData, amount: parseInt(e.target.value) || 0 })}
+                      inputMode="numeric"
+                      value={formatNumber(formData.amount)}
+                      onChange={(e) => setFormData({ ...formData, amount: parseNumber(e.target.value) })}
                       required
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label form-label-required">Biaya Admin</label>
                     <input
-                      type="number"
+                      type="text"
                       className="form-input"
                       placeholder="0"
-                      value={formData.adminFee || ''}
-                      onChange={(e) => setFormData({ ...formData, adminFee: parseInt(e.target.value) || 0 })}
+                      inputMode="numeric"
+                      value={formatNumber(formData.adminFee)}
+                      onChange={(e) => setFormData({ ...formData, adminFee: parseNumber(e.target.value) })}
                       required
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label form-label-required">Profit</label>
                     <input
-                      type="number"
+                      type="text"
                       className="form-input"
                       placeholder="0"
-                      value={formData.profit || ''}
-                      onChange={(e) => setFormData({ ...formData, profit: parseInt(e.target.value) || 0 })}
+                      inputMode="numeric"
+                      value={formatNumber(formData.profit)}
+                      onChange={(e) => setFormData({ ...formData, profit: parseNumber(e.target.value) })}
                       required
                     />
                   </div>
