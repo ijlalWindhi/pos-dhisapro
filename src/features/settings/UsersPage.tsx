@@ -7,10 +7,6 @@ import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from './hooks/u
 import { useRoles } from './hooks/useRoles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { User } from '@/types';
-import '@/styles/button.css';
-import '@/styles/form.css';
-import '@/styles/card.css';
-import '@/styles/components.css';
 
 const emptyFormData = {
   email: '',
@@ -90,10 +86,10 @@ export function UsersPage() {
       accessorKey: 'name',
       header: 'Nama',
       cell: ({ row }) => (
-        <span style={{ fontWeight: 600 }}>
+        <span className="font-semibold">
           {row.original.name}
           {row.original.id === currentUser?.id && (
-            <span className="badge badge-primary" style={{ marginLeft: '6px' }}>Anda</span>
+            <span className="badge badge-primary ml-1.5">Anda</span>
           )}
         </span>
       ),
@@ -102,7 +98,7 @@ export function UsersPage() {
       accessorKey: 'email',
       header: 'Email',
       cell: ({ getValue }) => (
-        <span style={{ color: 'var(--text-muted)' }}>{getValue() as string}</span>
+        <span className="text-gray-400">{getValue() as string}</span>
       ),
     },
     {

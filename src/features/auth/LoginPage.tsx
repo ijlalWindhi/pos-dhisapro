@@ -2,9 +2,6 @@ import { Store, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
-import '@/styles/layout.css';
-import '@/styles/button.css';
-import '@/styles/form.css';
 
 export function LoginPage() {
   const { signIn } = useAuth();
@@ -32,15 +29,15 @@ export function LoginPage() {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-logo">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 to-primary-800 p-4">
+      <div className="w-full max-w-sm bg-white rounded-xl shadow-xl p-8 text-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center mx-auto mb-4 text-white">
           <Store size={32} />
         </div>
-        <h1 className="login-title">POS DhisaPro</h1>
-        <p className="login-subtitle">Masuk untuk mengelola toko Anda</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">POS DhisaPro</h1>
+        <p className="text-sm text-gray-500 mb-6">Masuk untuk mengelola toko Anda</p>
         
-        <form onSubmit={handleSubmit} className="login-form">
+        <form onSubmit={handleSubmit} className="text-left">
           <div className="form-group">
             <label className="form-label" htmlFor="email">Email</label>
             <input
@@ -73,9 +70,8 @@ export function LoginPage() {
           
           <button 
             type="submit" 
-            className="btn btn-primary btn-full"
+            className="btn btn-primary btn-full mt-2"
             disabled={isLoading}
-            style={{ marginTop: 'var(--spacing-2)' }}
           >
             {isLoading ? (
               <>

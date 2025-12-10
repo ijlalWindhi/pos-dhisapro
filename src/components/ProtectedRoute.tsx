@@ -21,12 +21,7 @@ export function ProtectedRoute({ children, permission }: ProtectedRouteProps) {
 
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        minHeight: '50vh' 
-      }}>
+      <div className="flex items-center justify-center min-h-[50vh]">
         <div className="spinner spinner-lg"></div>
       </div>
     );

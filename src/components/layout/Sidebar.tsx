@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { MenuPermission } from '@/types';
-import '@/styles/layout.css';
 
 const navItems: { 
   section: string; 
@@ -84,60 +83,84 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
 
   return (
     <>
+      {/* Mobile overlay */}
       <div 
-        className={`sidebar-overlay ${isOpen ? 'open' : ''}`} 
+        className={`fixed inset-0 bg-black/50 z-90 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
         aria-hidden="true"
       />
-      <aside className={`sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
+      
+      {/* Sidebar */}
+      <aside 
+        className={`
+          fixed left-0 top-0 bottom-0 z-100 flex flex-col
+          bg-gradient-to-b from-primary-800 to-primary-900 text-white
+          transition-all duration-300
+          ${isCollapsed ? 'w-16' : 'w-60'}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        {/* Header */}
+        <div className={`p-4 border-b border-white/10 ${isCollapsed ? 'flex justify-center' : ''}`}>
+          <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className="w-9 h-9 bg-primary-500 rounded-lg flex items-center justify-center shrink-0">
               <Store size={20} />
             </div>
-            <span>DhisaPro</span>
+            {!isCollapsed && <span className="text-lg font-bold">DhisaPro</span>}
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        {/* Navigation */}
+        <nav className="flex-1 py-3 overflow-y-auto">
           {filteredNavItems.map((section) => (
-            <div key={section.section} className="sidebar-nav-section">
-              <div className="sidebar-nav-title">{section.section}</div>
+            <div key={section.section} className="mb-2">
+              {!isCollapsed && (
+                <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+                  {section.section}
+                </div>
+              )}
               {section.items.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`sidebar-nav-item ${isActive(item.to) ? 'active' : ''}`}
+                  className={`
+                    flex items-center gap-3 py-2 text-sm font-medium text-white/80
+                    transition-all duration-150 border-l-3 border-transparent
+                    hover:bg-white/10 hover:text-white
+                    ${isActive(item.to) ? 'bg-white/15 text-white border-l-primary-300' : ''}
+                    ${isCollapsed ? 'justify-center px-3' : 'px-4'}
+                  `}
                   onClick={onClose}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <item.icon className="sidebar-nav-item-icon" size={20} />
-                  <span>{item.label}</span>
+                  <item.icon className="w-5 h-5 shrink-0" />
+                  {!isCollapsed && <span>{item.label}</span>}
                 </Link>
               ))}
             </div>
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="sidebar-user-avatar">
+        {/* Footer */}
+        <div className={`p-3 border-t border-white/10 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+          <div className={`flex items-center gap-2 mb-2 ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center font-bold text-xs shrink-0">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div className="sidebar-user-info">
-              <div className="sidebar-user-name">{user?.name || 'User'}</div>
-              <div className="sidebar-user-role">
-                {user?.roleName || 'User'}
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm truncate">{user?.name || 'User'}</div>
+                <div className="text-xs text-white/60">{user?.roleName || 'User'}</div>
               </div>
-            </div>
+            )}
           </div>
           <button
             onClick={handleSignOut}
-            className="btn btn-danger btn-sm"
+            className="btn btn-danger w-full"
             title="Keluar"
           >
             <LogOut size={16} />
-            <span>Keluar</span>
+            {!isCollapsed && <span>Keluar</span>}
           </button>
         </div>
       </aside>

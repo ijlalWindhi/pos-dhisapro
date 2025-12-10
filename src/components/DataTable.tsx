@@ -9,8 +9,6 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
-import '@/styles/card.css';
-import '@/styles/button.css';
 
 interface DataTableProps<TData> {
   data: TData[];
@@ -36,6 +34,7 @@ export function DataTable<TData>({
     state: {
       sorting,
     },
+    enableColumnResizing: true,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -65,14 +64,13 @@ export function DataTable<TData>({
         <div className="data-table-perpage">
           <span>Per halaman:</span>
           <select
-            className="form-select"
+            className="form-select w-auto min-h-8 py-1 px-2 pr-7 text-xs"
             value={pageSize}
             onChange={(e) => {
               const size = Number(e.target.value);
               setPageSize(size);
               table.setPageSize(size);
             }}
-            style={{ width: 'auto', minHeight: '32px', padding: '4px 28px 4px 8px' }}
           >
             {[5, 10, 20, 50].map((size) => (
               <option key={size} value={size}>{size}</option>
@@ -91,15 +89,12 @@ export function DataTable<TData>({
                   <th
                     key={header.id}
                     onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
-                    style={{
-                      cursor: header.column.getCanSort() ? 'pointer' : 'default',
-                      userSelect: 'none',
-                    }}
+                    className={header.column.getCanSort() ? 'cursor-pointer select-none' : ''}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div className="flex items-center gap-1">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {header.column.getCanSort() && (
-                        <span style={{ opacity: header.column.getIsSorted() ? 1 : 0.3 }}>
+                        <span className={header.column.getIsSorted() ? 'opacity-100' : 'opacity-30'}>
                           {header.column.getIsSorted() === 'asc' ? (
                             <ChevronUp size={14} />
                           ) : header.column.getIsSorted() === 'desc' ? (
@@ -118,14 +113,14 @@ export function DataTable<TData>({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={columns.length} style={{ textAlign: 'center', padding: 'var(--spacing-8)' }}>
-                  <div className="spinner" style={{ margin: '0 auto' }}></div>
+                <td colSpan={columns.length} className="text-center py-8">
+                  <div className="spinner mx-auto"></div>
                 </td>
               </tr>
             ) : table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length}>
-                  <div className="empty-state" style={{ padding: 'var(--spacing-8)' }}>
+                  <div className="empty-state py-8">
                     {emptyIcon && <div className="empty-state-icon">{emptyIcon}</div>}
                     <div className="empty-state-title">{emptyMessage}</div>
                   </div>

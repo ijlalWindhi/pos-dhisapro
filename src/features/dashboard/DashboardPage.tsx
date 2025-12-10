@@ -9,8 +9,6 @@ import { MainLayout } from '@/components/layout';
 import { useLowStockProducts } from '@/features/products/hooks/useProducts';
 import { useTodayTransactions } from '@/features/sales/hooks/useTransactions';
 import { useTodayBrilinkTransactions, useTodayBrilinkSummary } from '@/features/brilink/hooks/useBrilink';
-import '@/styles/card.css';
-import '@/styles/components.css';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -79,11 +77,11 @@ export function DashboardPage() {
   return (
     <MainLayout title="Dashboard">
       {/* Stats Cards */}
-      <div className="grid grid-4" style={{ marginBottom: 'var(--spacing-6)' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         {stats.map((stat) => (
           <div key={stat.label} className="card stats-card">
             <div className={`stats-card-icon ${stat.color}`}>
-              <stat.icon size={28} />
+              <stat.icon size={24} />
             </div>
             <div className="stats-card-value">{isLoading ? '...' : stat.value}</div>
             <div className="stats-card-label">{stat.label}</div>
@@ -91,13 +89,13 @@ export function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recent Transactions */}
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">Transaksi Terbaru</h3>
           </div>
-          <div className="card-body" style={{ padding: 0 }}>
+          <div className="p-0">
             <div className="table-container">
               <table className="table">
                 <thead>
@@ -105,19 +103,19 @@ export function DashboardPage() {
                     <th>Waktu</th>
                     <th>Tipe</th>
                     <th>Keterangan</th>
-                    <th style={{ textAlign: 'right' }}>Jumlah</th>
+                    <th className="text-right">Jumlah</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', padding: 'var(--spacing-6)' }}>
-                        <div className="spinner" style={{ margin: '0 auto' }}></div>
+                      <td colSpan={4} className="text-center py-6">
+                        <div className="spinner mx-auto"></div>
                       </td>
                     </tr>
                   ) : recentTransactions.length === 0 ? (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', padding: 'var(--spacing-6)', color: 'var(--text-muted)' }}>
+                      <td colSpan={4} className="text-center py-6 text-gray-400">
                         Belum ada transaksi hari ini
                       </td>
                     </tr>
@@ -131,7 +129,7 @@ export function DashboardPage() {
                           </span>
                         </td>
                         <td>{tx.description}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(tx.amount)}</td>
+                        <td className="text-right font-semibold">{formatCurrency(tx.amount)}</td>
                       </tr>
                     ))
                   )}
@@ -146,34 +144,32 @@ export function DashboardPage() {
           <div className="card-header">
             <h3 className="card-title">Stok Menipis</h3>
           </div>
-          <div className="card-body" style={{ padding: 0 }}>
+          <div className="p-0">
             <div className="table-container">
               <table className="table">
                 <thead>
                   <tr>
                     <th>Produk</th>
-                    <th style={{ textAlign: 'center' }}>Stok</th>
-                    <th style={{ textAlign: 'center' }}>Min</th>
-                    <th style={{ textAlign: 'center' }}>Status</th>
+                    <th className="text-center">Stok</th>
+                    <th className="text-center">Min</th>
+                    <th className="text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingStock ? (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', padding: 'var(--spacing-6)' }}>
-                        <div className="spinner" style={{ margin: '0 auto' }}></div>
+                      <td colSpan={4} className="text-center py-6">
+                        <div className="spinner mx-auto"></div>
                       </td>
                     </tr>
                   ) : lowStockProducts.length === 0 ? (
                     <tr>
                       <td colSpan={4}>
-                        <div className="empty-state" style={{ padding: 'var(--spacing-6)' }}>
-                          <div className="empty-state-icon" style={{ width: 48, height: 48 }}>
-                            <Package size={24} />
+                        <div className="empty-state py-6">
+                          <div className="empty-state-icon w-12 h-12">
+                            <Package size={20} />
                           </div>
-                          <div className="empty-state-title" style={{ fontSize: 'var(--font-size-sm)' }}>
-                            Semua stok aman
-                          </div>
+                          <div className="empty-state-title text-sm">Semua stok aman</div>
                         </div>
                       </td>
                     </tr>
@@ -181,9 +177,9 @@ export function DashboardPage() {
                     lowStockProducts.slice(0, 5).map((product) => (
                       <tr key={product.id}>
                         <td>{product.name}</td>
-                        <td style={{ textAlign: 'center', fontWeight: 600 }}>{product.stock}</td>
-                        <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{product.minStock}</td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td className="text-center font-semibold">{product.stock}</td>
+                        <td className="text-center text-gray-400">{product.minStock}</td>
+                        <td className="text-center">
                           <span className={`badge ${product.stock <= product.minStock / 2 ? 'badge-danger' : 'badge-warning'}`}>
                             {product.stock <= product.minStock / 2 ? 'Kritis' : 'Hampir Habis'}
                           </span>

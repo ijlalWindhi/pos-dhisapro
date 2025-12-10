@@ -3,10 +3,6 @@ import { Plus, Edit2, Trash2, Shield, X } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
 import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from './hooks/useRoles';
 import { ALL_MENU_PERMISSIONS, type Role, type MenuPermission } from '@/types';
-import '@/styles/button.css';
-import '@/styles/form.css';
-import '@/styles/card.css';
-import '@/styles/components.css';
 
 const emptyFormData = {
   name: '',
@@ -79,13 +75,13 @@ export function RolesPage() {
           <p className="page-subtitle">Atur role dan hak akses pengguna</p>
         </div>
         <button className="btn btn-primary" onClick={() => openModal()}>
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Tambah Role</span>
         </button>
       </div>
 
       <div className="card">
-        <div className="card-body" style={{ padding: 0 }}>
+        <div className="p-0">
           <div className="table-container">
             <table className="table">
               <thead>
@@ -93,15 +89,15 @@ export function RolesPage() {
                   <th>Nama Role</th>
                   <th>Deskripsi</th>
                   <th>Hak Akses</th>
-                  <th style={{ textAlign: 'center' }}>Tipe</th>
-                  <th style={{ textAlign: 'center' }}>Aksi</th>
+                  <th className="text-center">Tipe</th>
+                  <th className="text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--spacing-8)' }}>
-                      <div className="spinner" style={{ margin: '0 auto' }}></div>
+                    <td colSpan={5} className="text-center py-8">
+                      <div className="spinner mx-auto"></div>
                     </td>
                   </tr>
                 ) : roles.length === 0 ? (
@@ -109,7 +105,7 @@ export function RolesPage() {
                     <td colSpan={5}>
                       <div className="empty-state">
                         <div className="empty-state-icon">
-                          <Shield size={32} />
+                          <Shield size={28} />
                         </div>
                         <div className="empty-state-title">Belum ada role</div>
                         <p className="empty-state-description">Tambahkan role untuk mengatur hak akses</p>
@@ -119,35 +115,35 @@ export function RolesPage() {
                 ) : (
                   roles.map((role) => (
                     <tr key={role.id}>
-                      <td style={{ fontWeight: 600 }}>{role.name}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{role.description || '-'}</td>
+                      <td className="font-semibold">{role.name}</td>
+                      <td className="text-gray-400">{role.description || '-'}</td>
                       <td>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1)' }}>
+                        <div className="flex flex-wrap gap-1">
                           {role.permissions.slice(0, 3).map(p => (
-                            <span key={p} className="badge badge-gray" style={{ fontSize: 'var(--font-size-xs)' }}>
+                            <span key={p} className="badge badge-gray text-xs">
                               {ALL_MENU_PERMISSIONS.find(m => m.key === p)?.label || p}
                             </span>
                           ))}
                           {role.permissions.length > 3 && (
-                            <span className="badge badge-gray" style={{ fontSize: 'var(--font-size-xs)' }}>
+                            <span className="badge badge-gray text-xs">
                               +{role.permissions.length - 3}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td className="text-center">
                         <span className={`badge ${role.isSystem ? 'badge-warning' : 'badge-gray'}`}>
                           {role.isSystem ? 'Sistem' : 'Custom'}
                         </span>
                       </td>
                       <td>
-                        <div className="table-action" style={{ justifyContent: 'center' }}>
+                        <div className="table-action justify-center">
                           <button 
                             className="btn btn-ghost btn-icon btn-sm" 
                             title="Edit"
                             onClick={() => openModal(role)}
                           >
-                            <Edit2 size={18} />
+                            <Edit2 size={16} />
                           </button>
                           {!role.isSystem && (
                             <button 
@@ -155,7 +151,7 @@ export function RolesPage() {
                               title="Hapus"
                               onClick={() => setDeleteConfirm(role.id)}
                             >
-                              <Trash2 size={18} />
+                              <Trash2 size={16} />
                             </button>
                           )}
                         </div>
@@ -178,7 +174,7 @@ export function RolesPage() {
                 {editingRole ? 'Edit Role' : 'Tambah Role Baru'}
               </h3>
               <button className="modal-close" onClick={closeModal}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -207,22 +203,17 @@ export function RolesPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label form-label-required">Hak Akses Menu</label>
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
-                    gap: 'var(--spacing-2)' 
-                  }}>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {ALL_MENU_PERMISSIONS.map((menu) => (
                       <label 
                         key={menu.key} 
-                        className="form-checkbox"
-                        style={{ 
-                          padding: 'var(--spacing-3)', 
-                          backgroundColor: formData.permissions.includes(menu.key) ? 'var(--color-primary-50)' : 'var(--bg-secondary)',
-                          borderRadius: 'var(--radius-md)',
-                          border: formData.permissions.includes(menu.key) ? '2px solid var(--color-primary-500)' : '2px solid transparent',
-                          cursor: 'pointer',
-                        }}
+                        className={`
+                          form-checkbox p-3 rounded-lg cursor-pointer border-2 transition-all
+                          ${formData.permissions.includes(menu.key) 
+                            ? 'bg-primary-50 border-primary-500' 
+                            : 'bg-gray-50 border-transparent'
+                          }
+                        `}
                       >
                         <input
                           type="checkbox"
@@ -259,7 +250,7 @@ export function RolesPage() {
             <div className="modal-header">
               <h3 className="modal-title">Hapus Role</h3>
               <button className="modal-close" onClick={() => setDeleteConfirm(null)}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <div className="modal-body">

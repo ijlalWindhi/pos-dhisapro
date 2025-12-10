@@ -4,10 +4,6 @@ import { MainLayout } from '@/components/layout';
 import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { BRILinkTransactionType, BRILinkFormData } from '@/types';
-import '@/styles/button.css';
-import '@/styles/form.css';
-import '@/styles/card.css';
-import '@/styles/components.css';
 
 const transactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet }[] = [
   { value: 'transfer', label: 'Transfer', icon: ArrowRightLeft },
@@ -81,23 +77,23 @@ export function BrilinkPage() {
           <p className="page-subtitle">Catat transaksi BRILink Anda</p>
         </div>
         <button className="btn btn-primary" onClick={() => openForm()}>
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Input Transaksi</span>
         </button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-2" style={{ marginBottom: 'var(--spacing-6)' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div className="card stats-card">
           <div className="stats-card-icon warning">
-            <Wallet size={28} />
+            <Wallet size={24} />
           </div>
           <div className="stats-card-value">{formatCurrency(todayProfit)}</div>
           <div className="stats-card-label">Profit Hari Ini</div>
         </div>
         <div className="card stats-card">
           <div className="stats-card-icon primary">
-            <ArrowRightLeft size={28} />
+            <ArrowRightLeft size={24} />
           </div>
           <div className="stats-card-value">{todayCount}</div>
           <div className="stats-card-label">Total Transaksi</div>
@@ -105,20 +101,19 @@ export function BrilinkPage() {
       </div>
 
       {/* Transaction Types (Quick Add) */}
-      <div className="card" style={{ marginBottom: 'var(--spacing-6)' }}>
+      <div className="card mb-4">
         <div className="card-header">
           <h3 className="card-title">Tambah Cepat</h3>
         </div>
         <div className="card-body">
-          <div style={{ display: 'flex', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+          <div className="flex gap-3 flex-wrap">
             {transactionTypes.map((type) => (
               <button
                 key={type.value}
-                className="btn btn-secondary btn-lg"
+                className="btn btn-secondary btn-lg flex-1 min-w-[140px]"
                 onClick={() => openForm(type.value)}
-                style={{ flex: '1 1 150px' }}
               >
-                <type.icon size={22} />
+                <type.icon size={20} />
                 <span>{type.label}</span>
               </button>
             ))}
@@ -131,7 +126,7 @@ export function BrilinkPage() {
         <div className="card-header">
           <h3 className="card-title">Riwayat Transaksi Hari Ini</h3>
         </div>
-        <div className="card-body" style={{ padding: 0 }}>
+        <div className="p-0">
           <div className="table-container">
             <table className="table">
               <thead>
@@ -139,16 +134,16 @@ export function BrilinkPage() {
                   <th>Waktu</th>
                   <th>Tipe</th>
                   <th>Keterangan</th>
-                  <th style={{ textAlign: 'right' }}>Nominal</th>
-                  <th style={{ textAlign: 'right' }}>Admin</th>
-                  <th style={{ textAlign: 'right' }}>Profit</th>
+                  <th className="text-right">Nominal</th>
+                  <th className="text-right">Admin</th>
+                  <th className="text-right">Profit</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--spacing-8)' }}>
-                      <div className="spinner" style={{ margin: '0 auto' }}></div>
+                    <td colSpan={6} className="text-center py-8">
+                      <div className="spinner mx-auto"></div>
                     </td>
                   </tr>
                 ) : transactions.length === 0 ? (
@@ -156,7 +151,7 @@ export function BrilinkPage() {
                     <td colSpan={6}>
                       <div className="empty-state">
                         <div className="empty-state-icon">
-                          <Wallet size={32} />
+                          <Wallet size={28} />
                         </div>
                         <div className="empty-state-title">Belum ada transaksi</div>
                         <p className="empty-state-description">Klik tombol diatas untuk input transaksi BRILink</p>
@@ -173,9 +168,9 @@ export function BrilinkPage() {
                           <span className="badge badge-warning">{typeInfo?.label || tx.transactionType}</span>
                         </td>
                         <td>{tx.description}</td>
-                        <td style={{ textAlign: 'right' }}>{formatCurrency(tx.amount)}</td>
-                        <td style={{ textAlign: 'right' }}>{formatCurrency(tx.adminFee)}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-success-600)' }}>
+                        <td className="text-right">{formatCurrency(tx.amount)}</td>
+                        <td className="text-right">{formatCurrency(tx.adminFee)}</td>
+                        <td className="text-right font-semibold text-success-600">
                           +{formatCurrency(tx.profit)}
                         </td>
                       </tr>
@@ -195,7 +190,7 @@ export function BrilinkPage() {
             <div className="modal-header">
               <h3 className="modal-title">Input Transaksi BRILink</h3>
               <button className="modal-close" onClick={resetForm}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <form onSubmit={handleSubmit}>

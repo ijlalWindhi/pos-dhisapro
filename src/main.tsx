@@ -9,13 +9,8 @@ import { AuthProvider } from '@/features/auth/hooks/useAuth';
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';
 
-// Import styles
+// Import Tailwind styles
 import './index.css';
-import './styles/button.css';
-import './styles/form.css';
-import './styles/card.css';
-import './styles/layout.css';
-import './styles/components.css';
 
 // Create a new router instance
 const router = createRouter({ routeTree });
@@ -47,21 +42,21 @@ createRoot(document.getElementById('root')!).render(
           toastOptions={{
             duration: 3000,
             style: {
-              background: 'var(--bg-primary)',
-              color: 'var(--text-primary)',
-              fontSize: 'var(--font-size-sm)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-lg)',
+              background: '#ffffff',
+              color: '#111827',
+              fontSize: '0.875rem',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
             },
             success: {
               iconTheme: {
-                primary: 'var(--color-success-500)',
+                primary: '#22c55e',
                 secondary: 'white',
               },
             },
             error: {
               iconTheme: {
-                primary: 'var(--color-danger-500)',
+                primary: '#ef4444',
                 secondary: 'white',
               },
             },

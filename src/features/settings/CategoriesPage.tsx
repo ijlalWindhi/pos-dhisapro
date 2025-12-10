@@ -3,10 +3,6 @@ import { Plus, Edit2, Trash2, Tags, X } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from './hooks/useCategories';
 import type { Category } from '@/types';
-import '@/styles/button.css';
-import '@/styles/form.css';
-import '@/styles/card.css';
-import '@/styles/components.css';
 
 const emptyFormData = {
   name: '',
@@ -70,28 +66,28 @@ export function CategoriesPage() {
           <p className="page-subtitle">Kelola kategori produk toko Anda</p>
         </div>
         <button className="btn btn-primary" onClick={() => openModal()}>
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Tambah Kategori</span>
         </button>
       </div>
 
       <div className="card">
-        <div className="card-body" style={{ padding: 0 }}>
+        <div className="p-0">
           <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
                   <th>Nama Kategori</th>
                   <th>Deskripsi</th>
-                  <th style={{ textAlign: 'center' }}>Status</th>
-                  <th style={{ textAlign: 'center' }}>Aksi</th>
+                  <th className="text-center">Status</th>
+                  <th className="text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: 'var(--spacing-8)' }}>
-                      <div className="spinner" style={{ margin: '0 auto' }}></div>
+                    <td colSpan={4} className="text-center py-8">
+                      <div className="spinner mx-auto"></div>
                     </td>
                   </tr>
                 ) : categories.length === 0 ? (
@@ -99,7 +95,7 @@ export function CategoriesPage() {
                     <td colSpan={4}>
                       <div className="empty-state">
                         <div className="empty-state-icon">
-                          <Tags size={32} />
+                          <Tags size={28} />
                         </div>
                         <div className="empty-state-title">Belum ada kategori</div>
                         <p className="empty-state-description">Tambahkan kategori untuk mengelompokkan produk</p>
@@ -109,28 +105,28 @@ export function CategoriesPage() {
                 ) : (
                   categories.map((category) => (
                     <tr key={category.id}>
-                      <td style={{ fontWeight: 600 }}>{category.name}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{category.description || '-'}</td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td className="font-semibold">{category.name}</td>
+                      <td className="text-gray-400">{category.description || '-'}</td>
+                      <td className="text-center">
                         <span className={`badge ${category.isActive ? 'badge-success' : 'badge-gray'}`}>
                           {category.isActive ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </td>
                       <td>
-                        <div className="table-action" style={{ justifyContent: 'center' }}>
+                        <div className="table-action justify-center">
                           <button 
                             className="btn btn-ghost btn-icon btn-sm" 
                             title="Edit"
                             onClick={() => openModal(category)}
                           >
-                            <Edit2 size={18} />
+                            <Edit2 size={16} />
                           </button>
                           <button 
                             className="btn btn-ghost btn-icon btn-sm" 
                             title="Hapus"
                             onClick={() => setDeleteConfirm(category.id)}
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -152,7 +148,7 @@ export function CategoriesPage() {
                 {editingCategory ? 'Edit Kategori' : 'Tambah Kategori Baru'}
               </h3>
               <button className="modal-close" onClick={closeModal}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -213,7 +209,7 @@ export function CategoriesPage() {
             <div className="modal-header">
               <h3 className="modal-title">Hapus Kategori</h3>
               <button className="modal-close" onClick={() => setDeleteConfirm(null)}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <div className="modal-body">

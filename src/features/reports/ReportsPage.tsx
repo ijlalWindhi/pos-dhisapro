@@ -5,10 +5,6 @@ import { useTransactionsByDateRange } from '@/features/sales/hooks/useTransactio
 import { useBrilinkByDateRange } from '@/features/brilink/hooks/useBrilink';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import '@/styles/button.css';
-import '@/styles/form.css';
-import '@/styles/card.css';
-import '@/styles/components.css';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -206,34 +202,34 @@ export function ReportsPage() {
           onClick={handleExport}
           disabled={exporting || isLoading}
         >
-          <Download size={20} />
+          <Download size={18} />
           <span>{exporting ? 'Mengexport...' : 'Export Excel'}</span>
         </button>
       </div>
 
       {/* Period Filter */}
-      <div className="card" style={{ marginBottom: 'var(--spacing-6)' }}>
-        <div className="card-body" style={{ padding: 'var(--spacing-4)' }}>
-          <div style={{ display: 'flex', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+      <div className="card mb-4">
+        <div className="p-4">
+          <div className="flex gap-3 flex-wrap">
             <button
               className={`btn ${period === 'today' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setPeriod('today')}
             >
-              <Calendar size={18} />
+              <Calendar size={16} />
               <span>Hari Ini</span>
             </button>
             <button
               className={`btn ${period === 'week' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setPeriod('week')}
             >
-              <Calendar size={18} />
+              <Calendar size={16} />
               <span>7 Hari</span>
             </button>
             <button
               className={`btn ${period === 'month' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setPeriod('month')}
             >
-              <Calendar size={18} />
+              <Calendar size={16} />
               <span>30 Hari</span>
             </button>
           </div>
@@ -241,31 +237,31 @@ export function ReportsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-4" style={{ marginBottom: 'var(--spacing-6)' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div className="card stats-card">
           <div className="stats-card-icon success">
-            <ShoppingCart size={28} />
+            <ShoppingCart size={24} />
           </div>
           <div className="stats-card-value">{isLoading ? '...' : formatCurrency(totalSales)}</div>
           <div className="stats-card-label">Penjualan ATK ({transactions.length} tx)</div>
         </div>
         <div className="card stats-card">
           <div className="stats-card-icon warning">
-            <Wallet size={28} />
+            <Wallet size={24} />
           </div>
           <div className="stats-card-value">{isLoading ? '...' : formatCurrency(totalBrilinkProfit)}</div>
           <div className="stats-card-label">Profit BRILink ({brilinkTx.length} tx)</div>
         </div>
         <div className="card stats-card">
           <div className="stats-card-icon primary">
-            <TrendingUp size={28} />
+            <TrendingUp size={24} />
           </div>
           <div className="stats-card-value">{isLoading ? '...' : formatCurrency(totalRevenue)}</div>
           <div className="stats-card-label">Total Pendapatan</div>
         </div>
         <div className="card stats-card">
           <div className="stats-card-icon success">
-            <DollarSign size={28} />
+            <DollarSign size={24} />
           </div>
           <div className="stats-card-value">{isLoading ? '...' : transactions.length + brilinkTx.length}</div>
           <div className="stats-card-label">Total Transaksi</div>
@@ -277,36 +273,34 @@ export function ReportsPage() {
         <div className="card-header">
           <h3 className="card-title">Rekap Harian</h3>
         </div>
-        <div className="card-body" style={{ padding: 0 }}>
+        <div className="p-0">
           <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
                   <th>Tanggal</th>
-                  <th style={{ textAlign: 'right' }}>Penjualan ATK</th>
-                  <th style={{ textAlign: 'right' }}>Profit BRILink</th>
-                  <th style={{ textAlign: 'right' }}>Total</th>
+                  <th className="text-right">Penjualan ATK</th>
+                  <th className="text-right">Profit BRILink</th>
+                  <th className="text-right">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: 'var(--spacing-6)' }}>
-                      <div className="spinner" style={{ margin: '0 auto' }}></div>
+                    <td colSpan={4} className="text-center py-6">
+                      <div className="spinner mx-auto"></div>
                     </td>
                   </tr>
                 ) : (
                   dailyData.map((day, index) => (
-                    <tr key={day.dateStr} style={index === 0 ? { backgroundColor: 'var(--color-primary-50)' } : undefined}>
-                      <td style={{ fontWeight: index === 0 ? 700 : 600 }}>
+                    <tr key={day.dateStr} className={index === 0 ? 'bg-primary-50' : ''}>
+                      <td className={index === 0 ? 'font-bold' : 'font-semibold'}>
                         {day.dateDisplay}
-                        {index === 0 && <span className="badge badge-primary" style={{ marginLeft: 'var(--spacing-2)' }}>Hari Ini</span>}
+                        {index === 0 && <span className="badge badge-primary ml-2">Hari Ini</span>}
                       </td>
-                      <td style={{ textAlign: 'right' }}>{formatCurrency(day.sales)}</td>
-                      <td style={{ textAlign: 'right', color: 'var(--color-warning-600)' }}>
-                        {formatCurrency(day.brilink)}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-success-600)' }}>
+                      <td className="text-right">{formatCurrency(day.sales)}</td>
+                      <td className="text-right text-warning-600">{formatCurrency(day.brilink)}</td>
+                      <td className="text-right font-semibold text-success-600">
                         {formatCurrency(day.sales + day.brilink)}
                       </td>
                     </tr>
@@ -314,15 +308,15 @@ export function ReportsPage() {
                 )}
               </tbody>
               <tfoot>
-                <tr style={{ backgroundColor: 'var(--color-gray-100)', fontWeight: 600 }}>
+                <tr className="bg-gray-100 font-semibold">
                   <td>Total</td>
-                  <td style={{ textAlign: 'right' }}>
+                  <td className="text-right">
                     {formatCurrency(dailyData.reduce((sum, d) => sum + d.sales, 0))}
                   </td>
-                  <td style={{ textAlign: 'right', color: 'var(--color-warning-600)' }}>
+                  <td className="text-right text-warning-600">
                     {formatCurrency(dailyData.reduce((sum, d) => sum + d.brilink, 0))}
                   </td>
-                  <td style={{ textAlign: 'right', color: 'var(--color-success-600)' }}>
+                  <td className="text-right text-success-600">
                     {formatCurrency(dailyData.reduce((sum, d) => sum + d.sales + d.brilink, 0))}
                   </td>
                 </tr>

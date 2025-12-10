@@ -6,10 +6,6 @@ import { DataTable } from '@/components/DataTable';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from './hooks/useProducts';
 import { useActiveCategories } from '@/features/settings/hooks/useCategories';
 import type { Product } from '@/types';
-import '@/styles/button.css';
-import '@/styles/form.css';
-import '@/styles/card.css';
-import '@/styles/components.css';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -114,16 +110,14 @@ export function ProductsPage() {
       accessorKey: 'name',
       header: 'Produk',
       cell: ({ getValue }) => (
-        <span style={{ fontWeight: 600 }}>{getValue() as string}</span>
+        <span className="font-semibold">{getValue() as string}</span>
       ),
     },
     {
       accessorKey: 'sku',
       header: 'SKU',
       cell: ({ getValue }) => (
-        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)' }}>
-          {getValue() as string}
-        </span>
+        <span className="text-gray-400 text-xs">{getValue() as string}</span>
       ),
     },
     {
@@ -137,7 +131,7 @@ export function ProductsPage() {
       accessorKey: 'price',
       header: 'Harga',
       cell: ({ getValue }) => (
-        <span style={{ fontWeight: 600 }}>{formatCurrency(getValue() as number)}</span>
+        <span className="font-semibold">{formatCurrency(getValue() as number)}</span>
       ),
     },
     {
@@ -205,8 +199,8 @@ export function ProductsPage() {
       </div>
 
       {/* Search */}
-      <div className="card" style={{ marginBottom: 'var(--spacing-4)' }}>
-        <div className="card-body" style={{ padding: 'var(--spacing-3)' }}>
+      <div className="card mb-4">
+        <div className="p-3">
           <div className="form-input-wrapper">
             <Search className="form-input-icon" size={18} />
             <input

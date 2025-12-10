@@ -1,6 +1,4 @@
 import { Menu, PanelLeftClose, PanelLeft } from 'lucide-react';
-import '@/styles/layout.css';
-import '@/styles/button.css';
 
 interface HeaderProps {
   title: string;
@@ -11,11 +9,11 @@ interface HeaderProps {
 
 export function Header({ title, onMenuClick, onToggleCollapse, isCollapsed }: HeaderProps) {
   return (
-    <header className="header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+    <header className="sticky top-0 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-50">
+      <div className="flex items-center gap-3">
         {/* Mobile menu button */}
         <button
-          className="btn btn-ghost btn-icon btn-sm header-menu-btn-mobile"
+          className="btn btn-ghost btn-icon btn-sm lg:hidden"
           onClick={onMenuClick}
           aria-label="Open menu"
         >
@@ -25,7 +23,7 @@ export function Header({ title, onMenuClick, onToggleCollapse, isCollapsed }: He
         {/* Desktop collapse button */}
         {onToggleCollapse && (
           <button
-            className="btn btn-ghost btn-icon btn-sm header-collapse-btn"
+            className="btn btn-ghost btn-icon btn-sm hidden lg:flex"
             onClick={onToggleCollapse}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={isCollapsed ? "Perluas sidebar" : "Perkecil sidebar"}
@@ -34,7 +32,7 @@ export function Header({ title, onMenuClick, onToggleCollapse, isCollapsed }: He
           </button>
         )}
         
-        <h1 className="header-title">{title}</h1>
+        <h1 className="text-lg font-bold text-gray-900">{title}</h1>
       </div>
     </header>
   );

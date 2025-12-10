@@ -1,7 +1,6 @@
 import { useState, type ReactNode, createContext, useContext } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import '@/styles/layout.css';
 
 interface SidebarContextType {
   isCollapsed: boolean;
@@ -28,21 +27,26 @@ export function MainLayout({ children, title }: MainLayoutProps) {
 
   return (
     <SidebarContext.Provider value={{ isCollapsed, toggleCollapsed }}>
-      <div className="layout">
+      <div className="flex min-h-screen w-screen">
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={() => setSidebarOpen(false)} 
           isCollapsed={isCollapsed}
         />
         
-        <main className={`main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <main
+          className={`
+            flex-1 flex flex-col min-h-screen transition-all duration-300 w-screen
+            ${isCollapsed ? 'lg:ml-16' : 'lg:ml-60'}
+          `}
+        >
           <Header 
             title={title} 
             onMenuClick={() => setSidebarOpen(true)}
             onToggleCollapse={toggleCollapsed}
             isCollapsed={isCollapsed}
           />
-          <div className="page-content">
+          <div className="flex-1 p-4 md:p-4">
             {children}
           </div>
         </main>
