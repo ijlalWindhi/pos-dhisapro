@@ -1,0 +1,168 @@
+/* Form Elements Styles */
+
+/* Form Group */
+.form-group {
+  margin-bottom: var(--spacing-5);
+}
+
+/* Labels */
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.form-label-required::after {
+  content: ' *';
+  color: var(--color-danger-500);
+}
+
+/* Input Base */
+.form-input,
+.form-select,
+.form-textarea {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  border: 2px solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  min-height: 48px;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--color-gray-400);
+}
+
+.form-input:hover:not(:disabled),
+.form-select:hover:not(:disabled),
+.form-textarea:hover:not(:disabled) {
+  border-color: var(--color-gray-400);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.form-input:disabled,
+.form-select:disabled,
+.form-textarea:disabled {
+  background-color: var(--color-gray-100);
+  cursor: not-allowed;
+}
+
+/* Input with error */
+.form-input-error {
+  border-color: var(--color-danger-500);
+}
+
+.form-input-error:focus {
+  border-color: var(--color-danger-500);
+  box-shadow: 0 0 0 3px var(--color-danger-100);
+}
+
+/* Error message */
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-danger-600);
+}
+
+/* Help text */
+.form-help {
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* Select */
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right var(--spacing-3) center;
+  background-repeat: no-repeat;
+  background-size: 20px;
+  padding-right: var(--spacing-10);
+}
+
+/* Textarea */
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Input with icon */
+.form-input-wrapper {
+  position: relative;
+}
+
+.form-input-icon {
+  position: absolute;
+  left: var(--spacing-4);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-400);
+  pointer-events: none;
+}
+
+.form-input-wrapper .form-input {
+  padding-left: calc(var(--spacing-4) + 24px + var(--spacing-2));
+}
+
+/* Input group (input with button) */
+.form-input-group {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.form-input-group .form-input {
+  flex: 1;
+}
+
+/* Checkbox & Radio */
+.form-checkbox,
+.form-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+}
+
+.form-checkbox input,
+.form-radio input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--color-primary-600);
+  cursor: pointer;
+}
+
+/* Large input for POS */
+.form-input-lg {
+  font-size: var(--font-size-lg);
+  padding: var(--spacing-4) var(--spacing-5);
+  min-height: 56px;
+}
+
+/* Number input with larger text */
+.form-input-number {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  text-align: right;
+}
