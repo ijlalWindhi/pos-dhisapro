@@ -108,7 +108,7 @@ export function BrilinkPage() {
                 onClick={() => openForm(type.value)}
               >
                 <type.icon size={20} />
-                <span>{type.label}</span>
+                <span className='text-xs md:text-sm'>{type.label}</span>
               </button>
             ))}
           </div>
