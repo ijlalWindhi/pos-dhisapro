@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Plus, Search, Edit2, Trash2, Package, X } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from './hooks/useProducts';
 import { useActiveCategories } from '@/features/settings/hooks/useCategories';
-import type { Product } from '@/types';
+import type { Product, Category } from '@/types';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -48,11 +48,66 @@ export function ProductsPage() {
     );
   }, [products, searchQuery]);
 
-  const generateSKU = () => {
-    const prefix = 'PRD';
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `${prefix}-${timestamp.slice(-4)}${random}`;
+  // Generate SKU prefix from category name (first 3 letters uppercase)
+  // If conflict exists, use 4th letter instead of 3rd
+  const generateSKUPrefix = useCallback((categoryName: string, allCategories: Category[]): string => {
+    const normalized = categoryName.toUpperCase().replace(/[^A-Z]/g, '');
+    if (normalized.length < 3) return normalized.padEnd(3, 'X');
+    
+    const defaultPrefix = normalized.slice(0, 3);
+    
+    // Check if other categories have the same prefix
+    const conflictingCategories = allCategories.filter(cat => {
+      if (cat.name.toUpperCase() === categoryName.toUpperCase()) return false;
+      const catNormalized = cat.name.toUpperCase().replace(/[^A-Z]/g, '');
+      return catNormalized.slice(0, 3) === defaultPrefix;
+    });
+    
+    // If no conflict, use default prefix
+    if (conflictingCategories.length === 0) {
+      return defaultPrefix;
+    }
+    
+    // If conflict exists, use first 2 letters + 4th letter
+    if (normalized.length >= 4) {
+      return normalized.slice(0, 2) + normalized[3];
+    }
+    
+    return defaultPrefix;
+  }, []);
+
+  // Get next sequence number for a SKU prefix
+  const getNextSequence = useCallback((prefix: string): number => {
+    const existingProducts = products.filter(p => p.sku.startsWith(prefix + '-'));
+    if (existingProducts.length === 0) return 1;
+    
+    const sequences = existingProducts.map(p => {
+      const match = p.sku.match(new RegExp(`^${prefix}-(\\d+)$`));
+      return match ? parseInt(match[1], 10) : 0;
+    });
+    
+    return Math.max(...sequences) + 1;
+  }, [products]);
+
+  // Generate full SKU for a category
+  const generateSKU = useCallback((categoryId: string): string => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return '';
+    
+    const prefix = generateSKUPrefix(category.name, categories);
+    const sequence = getNextSequence(prefix);
+    return `${prefix}-${sequence.toString().padStart(3, '0')}`;
+  }, [categories, generateSKUPrefix, getNextSequence]);
+
+  // Handle category change - auto-generate SKU
+  const handleCategoryChange = (categoryId: string) => {
+    if (!editingProduct) {
+      // Only auto-generate for new products
+      const newSku = generateSKU(categoryId);
+      setFormData({ ...formData, categoryId, sku: newSku });
+    } else {
+      setFormData({ ...formData, categoryId });
+    }
   };
 
   const openModal = (product?: Product) => {
@@ -71,10 +126,7 @@ export function ProductsPage() {
       });
     } else {
       setEditingProduct(null);
-      setFormData({
-        ...emptyFormData,
-        sku: generateSKU(),
-      });
+      setFormData(emptyFormData);
     }
     setShowModal(true);
   };
@@ -255,12 +307,13 @@ export function ProductsPage() {
                     <label className="form-label form-label-required">SKU</label>
                     <input
                       type="text"
-                      className="form-input"
-                      placeholder="Contoh: BTK-001"
+                      className="form-input bg-gray-100 cursor-not-allowed"
+                      placeholder="Pilih kategori terlebih dahulu"
                       value={formData.sku}
-                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                      disabled
                       required
                     />
+                    <p className="text-xs text-gray-400 mt-1">SKU otomatis berdasarkan kategori</p>
                   </div>
                 </div>
 
@@ -270,7 +323,7 @@ export function ProductsPage() {
                     <select
                       className="form-select"
                       value={formData.categoryId}
-                      onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                      onChange={(e) => handleCategoryChange(e.target.value)}
                       required
                     >
                       <option value="">Pilih Kategori</option>
@@ -289,11 +342,15 @@ export function ProductsPage() {
                       value={formData.unit}
                       onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                     >
-                      <option value="pcs">Pcs</option>
-                      <option value="box">Box</option>
-                      <option value="rim">Rim</option>
-                      <option value="lusin">Lusin</option>
-                      <option value="pack">Pack</option>
+                      <option value="pcs">pcs</option>
+                      <option value="box">box</option>
+                      <option value="pak">pak</option>
+                      <option value="lusin">lusin</option>
+                      <option value="rim">rim</option>
+                      <option value="kg">kg</option>
+                      <option value="gram">gram</option>
+                      <option value="liter">liter</option>
+                      <option value="ml">ml</option>
                     </select>
                   </div>
                 </div>
@@ -336,15 +393,16 @@ export function ProductsPage() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Stok Minimum</label>
+                    <label className="form-label form-label-required">Stok Minimum</label>
                     <input
                       type="number"
                       className="form-input"
                       placeholder="0"
                       value={formData.minStock || ''}
                       onChange={(e) => setFormData({ ...formData, minStock: parseInt(e.target.value) || 0 })}
+                      required
                     />
-                    <p className="form-help">Peringatan jika stok dibawah nilai ini</p>
+                    <p className="text-xs text-gray-400 mt-1">Peringatan jika stok di bawah ini</p>
                   </div>
                 </div>
 
@@ -355,7 +413,7 @@ export function ProductsPage() {
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                     />
-                    <span>Produk aktif (tampil di penjualan)</span>
+                    <span>Produk aktif (dapat dijual)</span>
                   </label>
                 </div>
               </div>
@@ -366,7 +424,7 @@ export function ProductsPage() {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={createProduct.isPending || updateProduct.isPending}
+                  disabled={createProduct.isPending || updateProduct.isPending || !formData.sku}
                 >
                   {createProduct.isPending || updateProduct.isPending ? 'Menyimpan...' : 'Simpan'}
                 </button>
@@ -387,7 +445,7 @@ export function ProductsPage() {
               </button>
             </div>
             <div className="modal-body">
-              <p>Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak dapat dibatalkan.</p>
+              <p>Apakah Anda yakin ingin menghapus produk ini?</p>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>
