@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Calendar, Download, TrendingUp, ShoppingCart, Wallet, DollarSign } from 'lucide-react';
+import { Calendar, Download, TrendingUp, ShoppingCart, Wallet, DollarSign, Eye } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { MainLayout } from '@/components/layout';
 import { useTransactionsByDateRange } from '@/features/sales/hooks/useTransactions';
 import { useBrilinkByDateRange } from '@/features/brilink/hooks/useBrilink';
@@ -142,7 +143,7 @@ export function ReportsPage() {
     return Array.from(dateMap.entries())
       .map(([dateStr, data]) => ({ 
         dateStr,
-        dateDisplay: data.date.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }),
+        dateDisplay: data.date.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
         shortDate: data.date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
         ...data 
       }))
@@ -284,7 +285,7 @@ export function ReportsPage() {
           <p className="page-subtitle">Ringkasan penjualan dan transaksi BRILink</p>
         </div>
         <button 
-          className="btn btn-secondary" 
+          className="btn btn-primary" 
           onClick={handleExport}
           disabled={exporting || isLoading}
         >
@@ -469,18 +470,20 @@ export function ReportsPage() {
                   <th className="text-right">Laba Kotor</th>
                   <th className="text-right">BRILink</th>
                   <th className="text-right">Total Laba</th>
+                  <th className="text-center w-20">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-6">
+                    <td colSpan={6} className="text-center py-6">
                       <div className="spinner mx-auto"></div>
                     </td>
                   </tr>
                 ) : (
                   dailyData.map((day) => {
                     const isToday = getLocalDateStr(day.date) === getLocalDateStr(new Date());
+                    const hasData = day.salesCount > 0 || day.brilinkCount > 0;
                     return (
                       <tr key={day.dateStr} className={isToday ? 'bg-primary-50' : ''}>
                         <td className={isToday ? 'font-bold' : 'font-semibold'}>
@@ -492,6 +495,22 @@ export function ReportsPage() {
                         <td className="text-right text-primary-600">{formatCurrency(day.brilink)}</td>
                         <td className="text-right font-semibold text-success-600">
                           {formatCurrency(day.labaKotor + day.brilink)}
+                        </td>
+                        <td className="text-center">
+                          {hasData ? (
+                            <Link
+                              to="/reports/$date"
+                              params={{ date: day.dateStr }}
+                              className="btn btn-ghost btn-sm"
+                              title="Lihat Detail"
+                            >
+                              <Eye size={16} className="text-primary-600" />
+                            </Link>
+                          ) : (
+                            <span className="btn btn-ghost btn-sm text-gray-300">
+                              <Eye size={16} />
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -513,6 +532,7 @@ export function ReportsPage() {
                   <td className="text-right text-success-600">
                     {formatCurrency(dailyData.reduce((sum, d) => sum + d.labaKotor + d.brilink, 0))}
                   </td>
+                  <td></td>
                 </tr>
               </tfoot>
             </table>

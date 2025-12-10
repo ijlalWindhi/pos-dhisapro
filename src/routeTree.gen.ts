@@ -17,6 +17,8 @@ import { Route as ProductsRouteImport } from './routes/products'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as BrilinkRouteImport } from './routes/brilink'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportsIndexRouteImport } from './routes/reports/index'
+import { Route as ReportsDateRouteImport } from './routes/reports/$date'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -58,26 +60,39 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsIndexRoute = ReportsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsDateRoute = ReportsDateRouteImport.update({
+  id: '/$date',
+  path: '/$date',
+  getParentRoute: () => ReportsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/brilink': typeof BrilinkRoute
   '/categories': typeof CategoriesRoute
   '/products': typeof ProductsRoute
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/roles': typeof RolesRoute
   '/sales': typeof SalesRoute
   '/users': typeof UsersRoute
+  '/reports/$date': typeof ReportsDateRoute
+  '/reports/': typeof ReportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/brilink': typeof BrilinkRoute
   '/categories': typeof CategoriesRoute
   '/products': typeof ProductsRoute
-  '/reports': typeof ReportsRoute
   '/roles': typeof RolesRoute
   '/sales': typeof SalesRoute
   '/users': typeof UsersRoute
+  '/reports/$date': typeof ReportsDateRoute
+  '/reports': typeof ReportsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,10 +100,12 @@ export interface FileRoutesById {
   '/brilink': typeof BrilinkRoute
   '/categories': typeof CategoriesRoute
   '/products': typeof ProductsRoute
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/roles': typeof RolesRoute
   '/sales': typeof SalesRoute
   '/users': typeof UsersRoute
+  '/reports/$date': typeof ReportsDateRoute
+  '/reports/': typeof ReportsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,16 +118,19 @@ export interface FileRouteTypes {
     | '/roles'
     | '/sales'
     | '/users'
+    | '/reports/$date'
+    | '/reports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/brilink'
     | '/categories'
     | '/products'
-    | '/reports'
     | '/roles'
     | '/sales'
     | '/users'
+    | '/reports/$date'
+    | '/reports'
   id:
     | '__root__'
     | '/'
@@ -121,6 +141,8 @@ export interface FileRouteTypes {
     | '/roles'
     | '/sales'
     | '/users'
+    | '/reports/$date'
+    | '/reports/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,7 +150,7 @@ export interface RootRouteChildren {
   BrilinkRoute: typeof BrilinkRoute
   CategoriesRoute: typeof CategoriesRoute
   ProductsRoute: typeof ProductsRoute
-  ReportsRoute: typeof ReportsRoute
+  ReportsRoute: typeof ReportsRouteWithChildren
   RolesRoute: typeof RolesRoute
   SalesRoute: typeof SalesRoute
   UsersRoute: typeof UsersRoute
@@ -192,15 +214,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/': {
+      id: '/reports/'
+      path: '/'
+      fullPath: '/reports/'
+      preLoaderRoute: typeof ReportsIndexRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/$date': {
+      id: '/reports/$date'
+      path: '/$date'
+      fullPath: '/reports/$date'
+      preLoaderRoute: typeof ReportsDateRouteImport
+      parentRoute: typeof ReportsRoute
+    }
   }
 }
+
+interface ReportsRouteChildren {
+  ReportsDateRoute: typeof ReportsDateRoute
+  ReportsIndexRoute: typeof ReportsIndexRoute
+}
+
+const ReportsRouteChildren: ReportsRouteChildren = {
+  ReportsDateRoute: ReportsDateRoute,
+  ReportsIndexRoute: ReportsIndexRoute,
+}
+
+const ReportsRouteWithChildren =
+  ReportsRoute._addFileChildren(ReportsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrilinkRoute: BrilinkRoute,
   CategoriesRoute: CategoriesRoute,
   ProductsRoute: ProductsRoute,
-  ReportsRoute: ReportsRoute,
+  ReportsRoute: ReportsRouteWithChildren,
   RolesRoute: RolesRoute,
   SalesRoute: SalesRoute,
   UsersRoute: UsersRoute,
