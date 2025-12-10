@@ -2,21 +2,14 @@ import {
   ShoppingCart, 
   DollarSign, 
   TrendingUp,
-  AlertTriangle,
-  Package
+  Package,
+  Wallet
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
 import { useLowStockProducts } from '@/features/products/hooks/useProducts';
 import { useTodayTransactions } from '@/features/sales/hooks/useTransactions';
 import { useTodayBrilinkTransactions, useTodayBrilinkSummary } from '@/features/brilink/hooks/useBrilink';
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(amount);
-};
+import { formatCurrency } from '@/utils/format';
 
 export function DashboardPage() {
   const { data: todayTransactions = [], isLoading: loadingTx } = useTodayTransactions();
@@ -24,8 +17,22 @@ export function DashboardPage() {
   const { data: brilinkTransactions = [], isLoading: loadingBrilink } = useTodayBrilinkTransactions();
   const { data: brilinkSummary } = useTodayBrilinkSummary();
 
-  const todaySales = todayTransactions.reduce((sum, tx) => sum + tx.total, 0);
-  const todayBrilinkProfit = brilinkSummary?.totalProfit || 0;
+  // Omzet ATK = total penjualan (harga jual x qty)
+  const omzetATK = todayTransactions.reduce((sum, tx) => sum + tx.total, 0);
+  
+  // HPP (Harga Pokok Penjualan) = harga beli x qty
+  const hpp = todayTransactions.reduce((sum, tx) => 
+    sum + tx.items.reduce((itemSum, item) => itemSum + ((item.buyPrice || 0) * item.quantity), 0), 0
+  );
+  
+  // Laba Kotor ATK = Omzet - HPP
+  const labaKotorATK = omzetATK - hpp;
+  
+  // Profit BRILink
+  const profitBrilink = brilinkSummary?.totalProfit || 0;
+  
+  // Total Laba = Laba Kotor ATK + Profit BRILink
+  const totalLaba = labaKotorATK + profitBrilink;
 
   // Combine all transactions for recent activity
   const recentTransactions = [
@@ -49,28 +56,28 @@ export function DashboardPage() {
 
   const stats = [
     { 
-      label: 'Penjualan Hari Ini', 
-      value: formatCurrency(todaySales), 
-      icon: DollarSign, 
-      color: 'success' as const 
-    },
-    { 
-      label: 'Total Transaksi', 
-      value: String(todayTransactions.length), 
+      label: 'Omzet ATK', 
+      value: formatCurrency(omzetATK), 
       icon: ShoppingCart, 
       color: 'primary' as const 
     },
     { 
-      label: 'Profit BRILink', 
-      value: formatCurrency(todayBrilinkProfit), 
+      label: 'Laba Kotor ATK', 
+      value: formatCurrency(labaKotorATK), 
       icon: TrendingUp, 
       color: 'warning' as const 
     },
     { 
-      label: 'Stok Menipis', 
-      value: `${lowStockProducts.length} Produk`, 
-      icon: AlertTriangle, 
-      color: 'danger' as const 
+      label: 'Profit BRILink', 
+      value: formatCurrency(profitBrilink), 
+      icon: Wallet, 
+      color: 'warning' as const 
+    },
+    { 
+      label: 'Total Laba', 
+      value: formatCurrency(totalLaba), 
+      icon: DollarSign, 
+      color: 'success' as const 
     },
   ];
 
@@ -141,8 +148,11 @@ export function DashboardPage() {
 
         {/* Low Stock Alert */}
         <div className="card">
-          <div className="card-header">
+          <div className="card-header flex items-center justify-between">
             <h3 className="card-title">Stok Menipis</h3>
+            {lowStockProducts.length > 0 && (
+              <span className="badge badge-danger">{lowStockProducts.length} Produk</span>
+            )}
           </div>
           <div className="p-0">
             <div className="table-container">

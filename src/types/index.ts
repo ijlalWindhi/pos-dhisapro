@@ -97,6 +97,7 @@ export interface TransactionItem {
   productName: string;
   quantity: number;
   price: number;
+  buyPrice: number;
   subtotal: number;
 }
 

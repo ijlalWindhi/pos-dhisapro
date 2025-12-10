@@ -65,6 +65,7 @@ export const transactionService = {
       productName: item.product.name,
       quantity: item.quantity,
       price: item.product.price,
+      buyPrice: item.product.buyPrice,
       subtotal: item.subtotal,
     }));
 
