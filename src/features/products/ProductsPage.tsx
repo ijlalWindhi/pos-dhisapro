@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Search, Edit2, Trash2, Package, X } from 'lucide-react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
+import { DataTable } from '@/components/DataTable';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from './hooks/useProducts';
 import { useActiveCategories } from '@/features/settings/hooks/useCategories';
 import type { Product } from '@/types';
@@ -42,11 +44,13 @@ export function ProductsPage() {
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
-  const filteredProducts = products.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = useMemo(() => {
+    return products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
 
   const generateSKU = () => {
     const prefix = 'PRD';
@@ -105,6 +109,88 @@ export function ProductsPage() {
     setDeleteConfirm(null);
   };
 
+  const columns = useMemo<ColumnDef<Product>[]>(() => [
+    {
+      accessorKey: 'name',
+      header: 'Produk',
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600 }}>{getValue() as string}</span>
+      ),
+    },
+    {
+      accessorKey: 'sku',
+      header: 'SKU',
+      cell: ({ getValue }) => (
+        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-xs)' }}>
+          {getValue() as string}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'categoryName',
+      header: 'Kategori',
+      cell: ({ getValue }) => (
+        <span className="badge badge-gray">{(getValue() as string) || 'Tidak ada'}</span>
+      ),
+    },
+    {
+      accessorKey: 'price',
+      header: 'Harga',
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600 }}>{formatCurrency(getValue() as number)}</span>
+      ),
+    },
+    {
+      accessorKey: 'stock',
+      header: 'Stok',
+      cell: ({ row }) => {
+        const stock = row.original.stock;
+        const minStock = row.original.minStock;
+        const unit = row.original.unit;
+        return (
+          <span className={`badge ${stock <= minStock ? 'badge-danger' : 'badge-success'}`}>
+            {stock} {unit}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'isActive',
+      header: 'Status',
+      cell: ({ getValue }) => {
+        const isActive = getValue() as boolean;
+        return (
+          <span className={`badge ${isActive ? 'badge-success' : 'badge-gray'}`}>
+            {isActive ? 'Aktif' : 'Nonaktif'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Aksi',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="table-action">
+          <button 
+            className="btn btn-ghost btn-icon btn-sm" 
+            title="Edit"
+            onClick={() => openModal(row.original)}
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            className="btn btn-ghost btn-icon btn-sm" 
+            title="Hapus"
+            onClick={() => setDeleteConfirm(row.original.id)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ], []);
+
   return (
     <MainLayout title="Produk">
       <div className="page-header">
@@ -113,16 +199,16 @@ export function ProductsPage() {
           <p className="page-subtitle">Kelola produk dan stok toko Anda</p>
         </div>
         <button className="btn btn-primary" onClick={() => openModal()}>
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Tambah Produk</span>
         </button>
       </div>
 
       {/* Search */}
-      <div className="card" style={{ marginBottom: 'var(--spacing-6)' }}>
-        <div className="card-body" style={{ padding: 'var(--spacing-4)' }}>
+      <div className="card" style={{ marginBottom: 'var(--spacing-4)' }}>
+        <div className="card-body" style={{ padding: 'var(--spacing-3)' }}>
           <div className="form-input-wrapper">
-            <Search className="form-input-icon" size={20} />
+            <Search className="form-input-icon" size={18} />
             <input
               type="text"
               className="form-input"
@@ -136,92 +222,13 @@ export function ProductsPage() {
 
       {/* Products Table */}
       <div className="card">
-        <div className="card-body" style={{ padding: 0 }}>
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Produk</th>
-                  <th>SKU</th>
-                  <th>Kategori</th>
-                  <th style={{ textAlign: 'right' }}>Harga Jual</th>
-                  <th style={{ textAlign: 'center' }}>Stok</th>
-                  <th style={{ textAlign: 'center' }}>Status</th>
-                  <th style={{ textAlign: 'center' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--spacing-8)' }}>
-                      <div className="spinner" style={{ margin: '0 auto' }}></div>
-                    </td>
-                  </tr>
-                ) : filteredProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="empty-state">
-                        <div className="empty-state-icon">
-                          <Package size={32} />
-                        </div>
-                        <div className="empty-state-title">Tidak ada produk</div>
-                        <p className="empty-state-description">
-                          {searchQuery ? 'Coba ubah kata kunci pencarian' : 'Mulai tambahkan produk baru'}
-                        </p>
-                        {!searchQuery && (
-                          <button className="btn btn-primary" onClick={() => openModal()}>
-                            <Plus size={18} /> Tambah Produk
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredProducts.map((product) => (
-                    <tr key={product.id}>
-                      <td style={{ fontWeight: 600 }}>{product.name}</td>
-                      <td style={{ color: 'var(--text-muted)' }}>{product.sku}</td>
-                      <td>
-                        <span className="badge badge-gray">{product.categoryName || 'Tidak ada'}</span>
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {formatCurrency(product.price)}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`badge ${product.stock <= product.minStock ? 'badge-danger' : 'badge-success'}`}>
-                          {product.stock} {product.unit}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`badge ${product.isActive ? 'badge-success' : 'badge-gray'}`}>
-                          {product.isActive ? 'Aktif' : 'Nonaktif'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="table-action" style={{ justifyContent: 'center' }}>
-                          <button 
-                            className="btn btn-ghost btn-icon btn-sm" 
-                            title="Edit"
-                            onClick={() => openModal(product)}
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button 
-                            className="btn btn-ghost btn-icon btn-sm" 
-                            title="Hapus"
-                            onClick={() => setDeleteConfirm(product.id)}
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          data={filteredProducts}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage={searchQuery ? 'Produk tidak ditemukan' : 'Belum ada produk'}
+          emptyIcon={<Package size={28} />}
+        />
       </div>
 
       {/* Add/Edit Modal */}
@@ -233,7 +240,7 @@ export function ProductsPage() {
                 {editingProduct ? 'Edit Produk' : 'Tambah Produk Baru'}
               </h3>
               <button className="modal-close" onClick={closeModal}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -343,7 +350,7 @@ export function ProductsPage() {
                       value={formData.minStock || ''}
                       onChange={(e) => setFormData({ ...formData, minStock: parseInt(e.target.value) || 0 })}
                     />
-                    <p className="form-help">Akan muncul peringatan jika stok dibawah nilai ini</p>
+                    <p className="form-help">Peringatan jika stok dibawah nilai ini</p>
                   </div>
                 </div>
 
@@ -382,7 +389,7 @@ export function ProductsPage() {
             <div className="modal-header">
               <h3 className="modal-title">Hapus Produk</h3>
               <button className="modal-close" onClick={() => setDeleteConfirm(null)}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <div className="modal-body">

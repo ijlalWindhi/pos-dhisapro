@@ -52,9 +52,10 @@ const navItems: {
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) {
   const location = useLocation();
   const { user, hasPermission, signOut } = useAuth();
 
@@ -88,11 +89,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <div className="sidebar-logo-icon">
-              <Store size={24} />
+              <Store size={20} />
             </div>
             <span>DhisaPro</span>
           </div>
@@ -108,8 +109,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   to={item.to}
                   className={`sidebar-nav-item ${isActive(item.to) ? 'active' : ''}`}
                   onClick={onClose}
+                  title={isCollapsed ? item.label : undefined}
                 >
-                  <item.icon className="sidebar-nav-item-icon" size={22} />
+                  <item.icon className="sidebar-nav-item-icon" size={20} />
                   <span>{item.label}</span>
                 </Link>
               ))}
@@ -128,14 +130,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {user?.roleName || 'User'}
               </div>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="btn btn-danger btn-icon btn-sm"
-              title="Keluar"
-            >
-              <LogOut size={20} /> Keluar
-            </button>
           </div>
+          <button
+            onClick={handleSignOut}
+            className="btn btn-danger btn-sm"
+            title="Keluar"
+          >
+            <LogOut size={16} />
+            <span>Keluar</span>
+          </button>
         </div>
       </aside>
     </>

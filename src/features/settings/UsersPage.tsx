@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Users as UsersIcon, X } from 'lucide-react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
+import { DataTable } from '@/components/DataTable';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from './hooks/useUsers';
 import { useRoles } from './hooks/useRoles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -83,6 +85,72 @@ export function UsersPage() {
     setDeleteConfirm(null);
   };
 
+  const columns = useMemo<ColumnDef<User>[]>(() => [
+    {
+      accessorKey: 'name',
+      header: 'Nama',
+      cell: ({ row }) => (
+        <span style={{ fontWeight: 600 }}>
+          {row.original.name}
+          {row.original.id === currentUser?.id && (
+            <span className="badge badge-primary" style={{ marginLeft: '6px' }}>Anda</span>
+          )}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ getValue }) => (
+        <span style={{ color: 'var(--text-muted)' }}>{getValue() as string}</span>
+      ),
+    },
+    {
+      accessorKey: 'roleName',
+      header: 'Role',
+      cell: ({ getValue }) => (
+        <span className="badge badge-gray">{(getValue() as string) || 'Unknown'}</span>
+      ),
+    },
+    {
+      accessorKey: 'isActive',
+      header: 'Status',
+      cell: ({ getValue }) => {
+        const isActive = getValue() as boolean;
+        return (
+          <span className={`badge ${isActive ? 'badge-success' : 'badge-danger'}`}>
+            {isActive ? 'Aktif' : 'Nonaktif'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Aksi',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="table-action">
+          <button 
+            className="btn btn-ghost btn-icon btn-sm" 
+            title="Edit"
+            onClick={() => openModal(row.original)}
+          >
+            <Edit2 size={16} />
+          </button>
+          {row.original.id !== currentUser?.id && (
+            <button 
+              className="btn btn-ghost btn-icon btn-sm" 
+              title="Hapus"
+              onClick={() => setDeleteConfirm(row.original.id)}
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ], [currentUser?.id]);
+
   return (
     <MainLayout title="Pengguna">
       <div className="page-header">
@@ -91,88 +159,19 @@ export function UsersPage() {
           <p className="page-subtitle">Kelola pengguna dan akses sistem</p>
         </div>
         <button className="btn btn-primary" onClick={() => openModal()}>
-          <Plus size={20} />
+          <Plus size={18} />
           <span>Tambah Pengguna</span>
         </button>
       </div>
 
       <div className="card">
-        <div className="card-body" style={{ padding: 0 }}>
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Nama</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th style={{ textAlign: 'center' }}>Status</th>
-                  <th style={{ textAlign: 'center' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--spacing-8)' }}>
-                      <div className="spinner" style={{ margin: '0 auto' }}></div>
-                    </td>
-                  </tr>
-                ) : users.length === 0 ? (
-                  <tr>
-                    <td colSpan={5}>
-                      <div className="empty-state">
-                        <div className="empty-state-icon">
-                          <UsersIcon size={32} />
-                        </div>
-                        <div className="empty-state-title">Belum ada pengguna</div>
-                        <p className="empty-state-description">Tambahkan pengguna untuk memberikan akses</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  users.map((user) => (
-                    <tr key={user.id}>
-                      <td style={{ fontWeight: 600 }}>
-                        {user.name}
-                        {user.id === currentUser?.id && (
-                          <span className="badge badge-primary" style={{ marginLeft: 'var(--spacing-2)' }}>Anda</span>
-                        )}
-                      </td>
-                      <td style={{ color: 'var(--text-muted)' }}>{user.email}</td>
-                      <td>
-                        <span className="badge badge-gray">{user.roleName || 'Unknown'}</span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`badge ${user.isActive ? 'badge-success' : 'badge-danger'}`}>
-                          {user.isActive ? 'Aktif' : 'Nonaktif'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="table-action" style={{ justifyContent: 'center' }}>
-                          <button 
-                            className="btn btn-ghost btn-icon btn-sm" 
-                            title="Edit"
-                            onClick={() => openModal(user)}
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          {user.id !== currentUser?.id && (
-                            <button 
-                              className="btn btn-ghost btn-icon btn-sm" 
-                              title="Hapus"
-                              onClick={() => setDeleteConfirm(user.id)}
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          data={users}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="Belum ada pengguna"
+          emptyIcon={<UsersIcon size={28} />}
+        />
       </div>
 
       {/* Add/Edit Modal */}
@@ -184,7 +183,7 @@ export function UsersPage() {
                 {editingUser ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
               </h3>
               <button className="modal-close" onClick={closeModal}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -275,7 +274,7 @@ export function UsersPage() {
             <div className="modal-header">
               <h3 className="modal-title">Hapus Pengguna</h3>
               <button className="modal-close" onClick={() => setDeleteConfirm(null)}>
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             <div className="modal-body">
