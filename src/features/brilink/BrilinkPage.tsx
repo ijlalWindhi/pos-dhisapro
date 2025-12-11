@@ -226,7 +226,7 @@ export function BrilinkPage() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label form-label-required">Biaya Admin</label>
+                    <label className="form-label">Biaya Admin</label>
                     <input
                       type="text"
                       className="form-input"
@@ -234,7 +234,6 @@ export function BrilinkPage() {
                       inputMode="numeric"
                       value={formatNumber(formData.adminFee)}
                       onChange={(e) => setFormData({ ...formData, adminFee: parseNumber(e.target.value) })}
-                      required
                     />
                   </div>
                   <div className="form-group">
