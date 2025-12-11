@@ -114,19 +114,17 @@ export function SalesPage() {
     <MainLayout title="Penjualan">
       <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-8rem)]">
         {/* Product Selection */}
-        <div className="flex-1 flex flex-col min-h-0 lg:pb-0 pb-20">
-          <div className="card mb-3">
-            <div className="p-3">
-              <div className="form-input-wrapper">
-                <Search className="form-input-icon" size={20} />
-                <input
-                  type="text"
-                  className="form-input form-input-lg"
-                  placeholder="Cari produk..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="card mb-3 min-h-16 p-3">
+            <div className="form-input-wrapper">
+              <Search className="form-input-icon" size={20} />
+              <input
+                type="text"
+                className="form-input form-input-md"
+                placeholder="Cari produk..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
 
@@ -182,7 +180,7 @@ export function SalesPage() {
         {/* Cart */}
         <div className={`
           fixed lg:static bottom-0 left-0 right-0 lg:w-96 bg-white lg:rounded-lg shadow-lg lg:shadow-sm
-          transition-transform duration-300 z-[90] lg:z-auto flex flex-col max-h-[70vh] lg:max-h-none lg:h-full
+          transition-transform duration-300 z-[90] lg:z-auto flex flex-col max-h-[45vh] md:max-h-[50vh] lg:max-h-[70vh] lg:max-h-none lg:h-full
           ${cartExpanded ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'}
         `}>
           <div className="card h-full flex flex-col">
