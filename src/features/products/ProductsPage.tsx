@@ -27,6 +27,7 @@ export function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState(emptyFormData);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const { data: products = [], isLoading } = useProducts();
   const { data: categories = [] } = useActiveCategories();
@@ -129,10 +130,25 @@ export function ProductsPage() {
     setShowModal(false);
     setEditingProduct(null);
     setFormData(emptyFormData);
+    setNameError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for duplicate product name
+    const normalizedName = formData.name.trim().toLowerCase();
+    const duplicateProduct = products.find(p => {
+      if (editingProduct && p.id === editingProduct.id) return false;
+      return p.name.trim().toLowerCase() === normalizedName;
+    });
+    
+    if (duplicateProduct) {
+      setNameError('Nama produk sudah digunakan');
+      return;
+    }
+    
+    setNameError(null);
     const categoryName = categories.find(c => c.id === formData.categoryId)?.name || '';
     
     if (editingProduct) {
@@ -290,12 +306,18 @@ export function ProductsPage() {
                     <label className="form-label form-label-required">Nama Produk</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className={`form-input ${nameError ? 'border-danger-500' : ''}`}
                       placeholder="Contoh: Buku Tulis Sidu"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        if (nameError) setNameError(null);
+                      }}
                       required
                     />
+                    {nameError && (
+                      <p className="text-xs text-danger-500 mt-1">{nameError}</p>
+                    )}
                   </div>
                   <div className="form-group">
                     <label className="form-label form-label-required">SKU</label>
