@@ -320,7 +320,7 @@ export function ReportsPage() {
               <span>30 Hari</span>
             </button>
             
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex flex-wrap items-center gap-2 md:ml-auto">
               <div className="form-group mb-0">
                 <label className="text-xs text-gray-500 mb-1 block">Dari</label>
                 <input
