@@ -64,3 +64,57 @@ export function useCreateTransaction() {
     },
   });
 }
+
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        paymentMethod?: 'cash' | 'transfer' | 'qris';
+        amountPaid?: number;
+      };
+    }) => transactionService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast.success('Transaksi berhasil diupdate');
+    },
+    onError: (error) => {
+      toast.error('Gagal mengupdate transaksi');
+      console.error('Update transaction error:', error);
+    },
+  });
+}
+
+export function useUpdateTransactionWithItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      originalItems,
+      newItems,
+      paymentMethod,
+      amountPaid,
+    }: {
+      id: string;
+      originalItems: { productId: string; quantity: number }[];
+      newItems: { productId: string; productName: string; quantity: number; price: number; buyPrice: number; subtotal: number }[];
+      paymentMethod: 'cash' | 'transfer' | 'qris';
+      amountPaid: number;
+    }) => transactionService.updateWithItems(id, originalItems, newItems, paymentMethod, amountPaid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success('Transaksi berhasil diupdate');
+    },
+    onError: (error) => {
+      toast.error('Gagal mengupdate transaksi');
+      console.error('Update transaction with items error:', error);
+    },
+  });
+}

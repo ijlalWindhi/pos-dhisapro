@@ -1,7 +1,9 @@
 import { 
   collection, 
   getDocs, 
-  addDoc, 
+  addDoc,
+  doc,
+  updateDoc, 
   query, 
   where, 
   orderBy,
@@ -93,6 +95,76 @@ export const transactionService = {
     }
 
     return docRef.id;
+  },
+
+  // Update transaction (simple edits - payment method, amount paid)
+  async update(
+    id: string,
+    data: {
+      paymentMethod?: 'cash' | 'transfer' | 'qris';
+      amountPaid?: number;
+    }
+  ): Promise<void> {
+    const docRef = doc(db, COLLECTION, id);
+    const updateData: Record<string, unknown> = {};
+    
+    if (data.paymentMethod !== undefined) {
+      updateData.paymentMethod = data.paymentMethod;
+    }
+    if (data.amountPaid !== undefined) {
+      updateData.amountPaid = data.amountPaid;
+      // Recalculate change if amountPaid is provided
+      // Note: This requires getting the current total, which we handle in the component
+    }
+    
+    await updateDoc(docRef, updateData);
+  },
+
+  // Update transaction with items (handles stock changes)
+  async updateWithItems(
+    id: string,
+    originalItems: { productId: string; quantity: number }[],
+    newItems: { productId: string; productName: string; quantity: number; price: number; buyPrice: number; subtotal: number }[],
+    paymentMethod: 'cash' | 'transfer' | 'qris',
+    amountPaid: number
+  ): Promise<void> {
+    const docRef = doc(db, COLLECTION, id);
+    
+    // Calculate stock differences and update product stock
+    for (const originalItem of originalItems) {
+      const newItem = newItems.find(ni => ni.productId === originalItem.productId);
+      const newQty = newItem ? newItem.quantity : 0;
+      const qtyDiff = originalItem.quantity - newQty;
+      
+      // qtyDiff > 0 means we're returning stock (quantity decreased)
+      // qtyDiff < 0 means we're taking more stock (quantity increased)
+      if (qtyDiff !== 0) {
+        await productService.updateStock(originalItem.productId, qtyDiff);
+      }
+    }
+    
+    // Check for new products that weren't in original (shouldn't happen but safety check)
+    for (const newItem of newItems) {
+      const originalItem = originalItems.find(oi => oi.productId === newItem.productId);
+      if (!originalItem && newItem.quantity > 0) {
+        // New product added - decrease stock
+        await productService.updateStock(newItem.productId, -newItem.quantity);
+      }
+    }
+    
+    // Calculate new totals
+    const subtotal = newItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const total = subtotal; // No discount
+    const change = amountPaid - total;
+    
+    await updateDoc(docRef, {
+      items: newItems,
+      subtotal,
+      total,
+      paymentMethod,
+      amountPaid,
+      change,
+    });
   },
 
   // Get sales summary

@@ -17,7 +17,9 @@ import { Route as ProductsRouteImport } from './routes/products'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as BrilinkRouteImport } from './routes/brilink'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SalesIndexRouteImport } from './routes/sales/index'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
+import { Route as SalesTodayRouteImport } from './routes/sales/today'
 import { Route as ReportsDateRouteImport } from './routes/reports/$date'
 
 const UsersRoute = UsersRouteImport.update({
@@ -60,10 +62,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesIndexRoute = SalesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SalesRoute,
+} as any)
 const ReportsIndexRoute = ReportsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ReportsRoute,
+} as any)
+const SalesTodayRoute = SalesTodayRouteImport.update({
+  id: '/today',
+  path: '/today',
+  getParentRoute: () => SalesRoute,
 } as any)
 const ReportsDateRoute = ReportsDateRouteImport.update({
   id: '/$date',
@@ -78,10 +90,12 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRouteWithChildren
   '/roles': typeof RolesRoute
-  '/sales': typeof SalesRoute
+  '/sales': typeof SalesRouteWithChildren
   '/users': typeof UsersRoute
   '/reports/$date': typeof ReportsDateRoute
+  '/sales/today': typeof SalesTodayRoute
   '/reports/': typeof ReportsIndexRoute
+  '/sales/': typeof SalesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -89,10 +103,11 @@ export interface FileRoutesByTo {
   '/categories': typeof CategoriesRoute
   '/products': typeof ProductsRoute
   '/roles': typeof RolesRoute
-  '/sales': typeof SalesRoute
   '/users': typeof UsersRoute
   '/reports/$date': typeof ReportsDateRoute
+  '/sales/today': typeof SalesTodayRoute
   '/reports': typeof ReportsIndexRoute
+  '/sales': typeof SalesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,10 +117,12 @@ export interface FileRoutesById {
   '/products': typeof ProductsRoute
   '/reports': typeof ReportsRouteWithChildren
   '/roles': typeof RolesRoute
-  '/sales': typeof SalesRoute
+  '/sales': typeof SalesRouteWithChildren
   '/users': typeof UsersRoute
   '/reports/$date': typeof ReportsDateRoute
+  '/sales/today': typeof SalesTodayRoute
   '/reports/': typeof ReportsIndexRoute
+  '/sales/': typeof SalesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,7 +136,9 @@ export interface FileRouteTypes {
     | '/sales'
     | '/users'
     | '/reports/$date'
+    | '/sales/today'
     | '/reports/'
+    | '/sales/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -127,10 +146,11 @@ export interface FileRouteTypes {
     | '/categories'
     | '/products'
     | '/roles'
-    | '/sales'
     | '/users'
     | '/reports/$date'
+    | '/sales/today'
     | '/reports'
+    | '/sales'
   id:
     | '__root__'
     | '/'
@@ -142,7 +162,9 @@ export interface FileRouteTypes {
     | '/sales'
     | '/users'
     | '/reports/$date'
+    | '/sales/today'
     | '/reports/'
+    | '/sales/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -152,7 +174,7 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRoute
   ReportsRoute: typeof ReportsRouteWithChildren
   RolesRoute: typeof RolesRoute
-  SalesRoute: typeof SalesRoute
+  SalesRoute: typeof SalesRouteWithChildren
   UsersRoute: typeof UsersRoute
 }
 
@@ -214,12 +236,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sales/': {
+      id: '/sales/'
+      path: '/'
+      fullPath: '/sales/'
+      preLoaderRoute: typeof SalesIndexRouteImport
+      parentRoute: typeof SalesRoute
+    }
     '/reports/': {
       id: '/reports/'
       path: '/'
       fullPath: '/reports/'
       preLoaderRoute: typeof ReportsIndexRouteImport
       parentRoute: typeof ReportsRoute
+    }
+    '/sales/today': {
+      id: '/sales/today'
+      path: '/today'
+      fullPath: '/sales/today'
+      preLoaderRoute: typeof SalesTodayRouteImport
+      parentRoute: typeof SalesRoute
     }
     '/reports/$date': {
       id: '/reports/$date'
@@ -244,6 +280,18 @@ const ReportsRouteChildren: ReportsRouteChildren = {
 const ReportsRouteWithChildren =
   ReportsRoute._addFileChildren(ReportsRouteChildren)
 
+interface SalesRouteChildren {
+  SalesTodayRoute: typeof SalesTodayRoute
+  SalesIndexRoute: typeof SalesIndexRoute
+}
+
+const SalesRouteChildren: SalesRouteChildren = {
+  SalesTodayRoute: SalesTodayRoute,
+  SalesIndexRoute: SalesIndexRoute,
+}
+
+const SalesRouteWithChildren = SalesRoute._addFileChildren(SalesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrilinkRoute: BrilinkRoute,
@@ -251,7 +299,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRoute,
   ReportsRoute: ReportsRouteWithChildren,
   RolesRoute: RolesRoute,
-  SalesRoute: SalesRoute,
+  SalesRoute: SalesRouteWithChildren,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport

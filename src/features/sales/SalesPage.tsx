@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, ChevronUp, ChevronDown, ClipboardList } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { MainLayout } from '@/components/layout';
 import { useProducts } from '@/features/products/hooks/useProducts';
 import { useCreateTransaction } from './hooks/useTransactions';
@@ -116,15 +117,25 @@ export function SalesPage() {
         {/* Product Selection */}
         <div className="flex-1 flex flex-col min-h-0">
           <div className="card mb-3 min-h-16 p-3">
-            <div className="form-input-wrapper">
-              <Search className="form-input-icon" size={20} />
-              <input
-                type="text"
-                className="form-input form-input-md"
-                placeholder="Cari produk..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="flex items-center gap-3">
+              <div className="form-input-wrapper flex-1">
+                <Search className="form-input-icon" size={20} />
+                <input
+                  type="text"
+                  className="form-input form-input-md"
+                  placeholder="Cari produk..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Link
+                to="/sales/today"
+                className="btn btn-secondary"
+                title="Lihat transaksi hari ini"
+              >
+                <ClipboardList size={18} />
+                <span className="hidden sm:inline">Riwayat</span>
+              </Link>
             </div>
           </div>
 
