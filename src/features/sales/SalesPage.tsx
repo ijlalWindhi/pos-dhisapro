@@ -33,7 +33,8 @@ export function SalesPage() {
   const filteredProducts = activeProducts.filter(
     (product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (product.categoryName && product.categoryName.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const addToCart = (product: Product) => {

@@ -39,7 +39,8 @@ export function ProductsPage() {
     return products.filter(
       (product) =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+        product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.categoryName && product.categoryName.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [products, searchQuery]);
 
