@@ -1,7 +1,9 @@
 import { 
   collection, 
   getDocs, 
-  addDoc, 
+  addDoc,
+  doc,
+  updateDoc, 
   query, 
   where, 
   orderBy,
@@ -92,5 +94,21 @@ export const brilinkService = {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     return this.getSummary(today, tomorrow);
+  },
+
+  // Update transaction
+  async update(id: string, data: BRILinkFormData): Promise<void> {
+    const docRef = doc(db, COLLECTION, id);
+    await updateDoc(docRef, {
+      transactionType: data.transactionType,
+      description: `${data.accountName} - ${data.accountNumber}`,
+      accountName: data.accountName,
+      accountNumber: data.accountNumber,
+      amount: data.amount,
+      adminFee: data.adminFee,
+      profit: data.profit,
+      customerName: data.customerName || null,
+      customerPhone: data.customerPhone || null,
+    });
   },
 };

@@ -63,3 +63,21 @@ export function useCreateBrilinkTransaction() {
     },
   });
 }
+
+export function useUpdateBrilinkTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: BRILinkFormData }) =>
+      brilinkService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast.success('Transaksi BRILink berhasil diupdate');
+    },
+    onError: (error) => {
+      toast.error('Gagal mengupdate transaksi');
+      console.error('Update brilink transaction error:', error);
+    },
+  });
+}
+

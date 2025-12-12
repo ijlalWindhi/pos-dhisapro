@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X } from 'lucide-react';
+import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
-import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction } from './hooks/useBrilink';
+import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction, useUpdateBrilinkTransaction } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
-import type { BRILinkTransactionType, BRILinkFormData } from '@/types';
+import type { BRILinkTransactionType, BRILinkFormData, BRILinkTransaction } from '@/types';
 
 const transactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet }[] = [
   { value: 'transfer', label: 'Transfer', icon: ArrowRightLeft },
@@ -30,17 +30,35 @@ export function BrilinkPage() {
   const { data: transactions = [], isLoading } = useTodayBrilinkTransactions();
   const { data: summary } = useTodayBrilinkSummary();
   const createTransaction = useCreateBrilinkTransaction();
+  const updateTransaction = useUpdateBrilinkTransaction();
   
   const [showForm, setShowForm] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<BRILinkTransaction | null>(null);
   const [formData, setFormData] = useState<BRILinkFormData>(emptyFormData);
 
   const resetForm = () => {
     setFormData(emptyFormData);
     setShowForm(false);
+    setEditingTransaction(null);
   };
 
   const openForm = (type?: BRILinkTransactionType) => {
+    setEditingTransaction(null);
     setFormData({ ...emptyFormData, transactionType: type || 'transfer' });
+    setShowForm(true);
+  };
+
+  const openEditForm = (tx: BRILinkTransaction) => {
+    setEditingTransaction(tx);
+    setFormData({
+      transactionType: tx.transactionType,
+      accountName: tx.accountName || tx.description?.split(' - ')[0] || '',
+      accountNumber: tx.accountNumber || tx.description?.split(' - ')[1] || '',
+      amount: tx.amount,
+      adminFee: tx.adminFee,
+      profit: tx.profit,
+      customerName: tx.customerName || '',
+    });
     setShowForm(true);
   };
 
@@ -49,11 +67,18 @@ export function BrilinkPage() {
     if (!user) return;
 
     try {
-      await createTransaction.mutateAsync({
-        data: formData,
-        operatorId: user.id,
-        operatorName: user.name,
-      });
+      if (editingTransaction) {
+        await updateTransaction.mutateAsync({
+          id: editingTransaction.id,
+          data: formData,
+        });
+      } else {
+        await createTransaction.mutateAsync({
+          data: formData,
+          operatorId: user.id,
+          operatorName: user.name,
+        });
+      }
       resetForm();
     } catch (error) {
       console.error('BRILink transaction error:', error);
@@ -62,6 +87,7 @@ export function BrilinkPage() {
 
   const todayProfit = summary?.totalProfit || 0;
   const todayCount = summary?.totalTransactions || 0;
+  const isSubmitting = createTransaction.isPending || updateTransaction.isPending;
 
   return (
     <MainLayout title="BRILink">
@@ -131,18 +157,19 @@ export function BrilinkPage() {
                   <th className="text-right">Nominal</th>
                   <th className="text-right">Admin</th>
                   <th className="text-right">Profit</th>
+                  <th className="text-center w-20">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8">
+                    <td colSpan={7} className="text-center py-8">
                       <div className="spinner mx-auto"></div>
                     </td>
                   </tr>
                 ) : transactions.length === 0 ? (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={7}>
                       <div className="empty-state">
                         <div className="empty-state-icon">
                           <Wallet size={28} />
@@ -167,6 +194,15 @@ export function BrilinkPage() {
                         <td className="text-right font-semibold text-success-600">
                           +{formatCurrency(tx.profit)}
                         </td>
+                        <td className="text-center">
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            title="Edit"
+                            onClick={() => openEditForm(tx)}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
@@ -182,7 +218,9 @@ export function BrilinkPage() {
         <div className="modal-overlay">
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Input Transaksi BRILink</h3>
+              <h3 className="modal-title">
+                {editingTransaction ? 'Edit Transaksi BRILink' : 'Input Transaksi BRILink'}
+              </h3>
               <button className="modal-close" onClick={resetForm}>
                 <X size={18} />
               </button>
@@ -280,9 +318,9 @@ export function BrilinkPage() {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={createTransaction.isPending}
+                  disabled={isSubmitting}
                 >
-                  {createTransaction.isPending ? 'Menyimpan...' : 'Simpan Transaksi'}
+                  {isSubmitting ? 'Menyimpan...' : (editingTransaction ? 'Update Transaksi' : 'Simpan Transaksi')}
                 </button>
               </div>
             </form>
