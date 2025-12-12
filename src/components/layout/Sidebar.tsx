@@ -145,7 +145,10 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
 
         {/* Footer */}
         <div className={`p-3 border-t border-white/10 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
-          <div className={`flex items-center gap-2 mb-2 ${isCollapsed ? 'justify-center' : ''}`}>
+          <Link 
+            to="/profile" 
+            className={`text-white flex items-center gap-2 mb-2 hover:bg-white/10 rounded-lg p-2 -mx-2 transition-colors ${isCollapsed ? 'justify-center mx-0 p-2' : ''}`}
+          >
             <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center font-bold text-xs shrink-0">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
@@ -155,7 +158,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
                 <div className="text-xs text-white/60">{user?.roleName || 'User'}</div>
               </div>
             )}
-          </div>
+          </Link>
           <button
             onClick={handleSignOut}
             className="btn btn-danger w-full"

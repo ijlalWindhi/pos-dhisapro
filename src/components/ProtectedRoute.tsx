@@ -5,7 +5,7 @@ import type { MenuPermission } from '@/types';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  permission: MenuPermission;
+  permission?: MenuPermission; // Optional - if not provided, only requires authentication
 }
 
 export function ProtectedRoute({ children, permission }: ProtectedRouteProps) {
@@ -21,8 +21,8 @@ export function ProtectedRoute({ children, permission }: ProtectedRouteProps) {
   }
 
   // If not logged in, this is handled by the auth provider
-  // If logged in but no permission, show 403
-  if (user && !hasPermission(permission)) {
+  // If logged in but no permission (when permission is required), show 403
+  if (user && permission && !hasPermission(permission)) {
     return <ForbiddenPage />;
   }
 

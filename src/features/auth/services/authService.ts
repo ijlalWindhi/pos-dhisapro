@@ -58,11 +58,22 @@ export const authService = {
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
+        
+        // Fetch role name
+        let roleName = '';
+        if (data.roleId) {
+          const roleDoc = await getDoc(doc(db, 'roles', data.roleId));
+          if (roleDoc.exists()) {
+            roleName = roleDoc.data().name || '';
+          }
+        }
+        
         return {
           id: userDoc.id,
           email: data.email,
           name: data.name,
           roleId: data.roleId || '',
+          roleName,
           isActive: data.isActive !== false,
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate(),
@@ -90,6 +101,37 @@ export const authService = {
     }
   },
 
+  // Update user profile (name only - email cannot be changed)
+  async updateProfile(uid: string, name: string): Promise<void> {
+    const userRef = doc(db, 'users', uid);
+    const { updateDoc: firestoreUpdate, serverTimestamp } = await import('firebase/firestore');
+    await firestoreUpdate(userRef, {
+      name,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  // Update password
+  async updatePassword(newPassword: string): Promise<void> {
+    const { updatePassword } = await import('firebase/auth');
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('No user is currently signed in');
+    }
+    await updatePassword(currentUser, newPassword);
+  },
+
+  // Re-authenticate user (required before password change)
+  async reauthenticate(currentPassword: string): Promise<void> {
+    const { EmailAuthProvider, reauthenticateWithCredential } = await import('firebase/auth');
+    const currentUser = auth.currentUser;
+    if (!currentUser || !currentUser.email) {
+      throw new Error('No user is currently signed in');
+    }
+    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+  },
+
   // Subscribe to auth state changes
   onAuthStateChange(callback: (user: FirebaseUser | null) => void) {
     return onAuthStateChanged(auth, callback);
@@ -107,3 +149,4 @@ export const authService = {
     };
   },
 };
+

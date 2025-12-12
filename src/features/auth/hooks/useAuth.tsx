@@ -14,6 +14,7 @@ interface AuthContextType {
   getDefaultRoute: () => string;
   signIn: (email: string, password: string) => Promise<string>; // returns redirect route
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -126,6 +127,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return getFirstAccessibleRoute(permissions);
   };
 
+  const refreshUser = async () => {
+    if (!user) return;
+    const userData = await authService.getUserData(user.id);
+    if (userData) {
+      setUser(userData);
+      await loadUserRole(userData.roleId);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -138,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         getDefaultRoute,
         signIn,
         signOut,
+        refreshUser,
       }}
     >
       {children}
