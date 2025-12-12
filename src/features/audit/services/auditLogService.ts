@@ -46,33 +46,29 @@ export const auditLogService = {
     endDate: Date,
     moduleFilter?: AuditModule
   ): Promise<AuditLog[]> {
-    let q;
-    
-    if (moduleFilter) {
-      q = query(
-        collection(db, COLLECTION),
-        where('module', '==', moduleFilter),
-        where('createdAt', '>=', Timestamp.fromDate(startDate)),
-        where('createdAt', '<=', Timestamp.fromDate(endDate)),
-        orderBy('createdAt', 'desc'),
-        limit(500)
-      );
-    } else {
-      q = query(
-        collection(db, COLLECTION),
-        where('createdAt', '>=', Timestamp.fromDate(startDate)),
-        where('createdAt', '<=', Timestamp.fromDate(endDate)),
-        orderBy('createdAt', 'desc'),
-        limit(500)
-      );
-    }
+    // Fetch all logs in date range, filter by module client-side
+    // This avoids needing a composite index in Firestore
+    const q = query(
+      collection(db, COLLECTION),
+      where('createdAt', '>=', Timestamp.fromDate(startDate)),
+      where('createdAt', '<=', Timestamp.fromDate(endDate)),
+      orderBy('createdAt', 'desc'),
+      limit(1000)
+    );
     
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({
+    let logs = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as AuditLog[];
+    
+    // Filter by module client-side if specified
+    if (moduleFilter) {
+      logs = logs.filter(log => log.module === moduleFilter);
+    }
+    
+    return logs;
   },
 
   // Get recent logs
