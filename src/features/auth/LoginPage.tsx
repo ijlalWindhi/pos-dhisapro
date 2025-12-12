@@ -1,10 +1,12 @@
 import { Store, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from './hooks/useAuth';
 
 export function LoginPage() {
   const { signIn } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,8 +20,10 @@ export function LoginPage() {
     
     setIsLoading(true);
     try {
-      await signIn(email, password);
+      const redirectPath = await signIn(email, password);
       toast.success('Login berhasil!');
+      // Redirect to first accessible page based on permissions
+      navigate({ to: redirectPath });
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Email atau password salah');

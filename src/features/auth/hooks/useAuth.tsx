@@ -12,7 +12,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   hasPermission: (permission: MenuPermission) => boolean;
   getDefaultRoute: () => string;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<string>; // returns redirect route
   signOut: () => Promise<void>;
 }
 
@@ -72,12 +72,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<string> => {
     setIsLoading(true);
     try {
       const userData = await authService.signIn(email, password);
       setUser(userData);
-      await loadUserRole(userData.roleId);
+      
+      // Load user role and get permissions
+      let userPermissions: MenuPermission[] = [];
+      try {
+        const roleData = await roleService.getById(userData.roleId);
+        if (roleData) {
+          setRole(roleData);
+          setPermissions(roleData.permissions);
+          userPermissions = roleData.permissions;
+        }
+      } catch (error) {
+        console.error('Error loading role:', error);
+        userPermissions = ['dashboard', 'products', 'categories', 'sales', 'brilink', 'reports', 'users', 'roles'];
+        setPermissions(userPermissions);
+      }
+      
+      // Return the first accessible route
+      return getFirstAccessibleRoute(userPermissions);
     } finally {
       setIsLoading(false);
     }

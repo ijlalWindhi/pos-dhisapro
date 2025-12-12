@@ -58,13 +58,14 @@ export const brilinkService = {
   ): Promise<string> {
     const docRef = await addDoc(collection(db, COLLECTION), {
       transactionType: data.transactionType,
-      description: data.description,
+      description: `${data.accountName} - ${data.accountNumber}`, // for backward compat
+      accountName: data.accountName,
+      accountNumber: data.accountNumber,
       amount: data.amount,
       adminFee: data.adminFee,
       profit: data.profit,
       customerName: data.customerName || null,
       customerPhone: data.customerPhone || null,
-      referenceNo: data.referenceNo || null,
       operatorId,
       operatorName,
       createdAt: serverTimestamp(),

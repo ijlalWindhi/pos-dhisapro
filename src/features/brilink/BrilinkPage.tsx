@@ -17,12 +17,12 @@ const transactionTypes: { value: BRILinkTransactionType; label: string; icon: ty
 
 const emptyFormData: BRILinkFormData = {
   transactionType: 'transfer',
-  description: '',
+  accountName: '',
+  accountNumber: '',
   amount: 0,
   adminFee: 0,
   profit: 0,
   customerName: '',
-  referenceNo: '',
 };
 
 export function BrilinkPage() {
@@ -127,7 +127,7 @@ export function BrilinkPage() {
                 <tr>
                   <th>Waktu</th>
                   <th>Tipe</th>
-                  <th>Keterangan</th>
+                  <th>No Rek / Nama</th>
                   <th className="text-right">Nominal</th>
                   <th className="text-right">Admin</th>
                   <th className="text-right">Profit</th>
@@ -201,16 +201,29 @@ export function BrilinkPage() {
                     ))}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label className="form-label form-label-required">Keterangan</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Contoh: Transfer ke BCA"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    required
-                  />
+                <div className="grid grid-2">
+                  <div className="form-group">
+                    <label className="form-label form-label-required">No Rekening</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Contoh: 1234567890"
+                      value={formData.accountNumber}
+                      onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label form-label-required">Nama Rekening</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Contoh: John Doe"
+                      value={formData.accountName}
+                      onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-3">
                   <div className="form-group">
@@ -249,27 +262,15 @@ export function BrilinkPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-2">
-                  <div className="form-group">
-                    <label className="form-label">Nama Pelanggan (Opsional)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Nama pelanggan"
-                      value={formData.customerName || ''}
-                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">No. Referensi (Opsional)</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="No. referensi"
-                      value={formData.referenceNo || ''}
-                      onChange={(e) => setFormData({ ...formData, referenceNo: e.target.value })}
-                    />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Nama Pelanggan (Opsional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Nama pelanggan"
+                    value={formData.customerName || ''}
+                    onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="modal-footer">

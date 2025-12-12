@@ -112,13 +112,15 @@ export type BRILinkTransactionType =
 export interface BRILinkTransaction {
   id: string;
   transactionType: BRILinkTransactionType;
-  description: string;
+  description: string; // legacy - for backward compatibility
+  accountName?: string;
+  accountNumber?: string;
   amount: number;
   adminFee: number;
   profit: number;
   customerName?: string;
   customerPhone?: string;
-  referenceNo?: string;
+  referenceNo?: string; // legacy - for backward compatibility
   operatorId: string;
   operatorName: string;
   createdAt: Date;
@@ -154,13 +156,13 @@ export interface ProductFormData {
 
 export interface BRILinkFormData {
   transactionType: BRILinkTransactionType;
-  description: string;
+  accountName: string;
+  accountNumber: string;
   amount: number;
   adminFee: number;
   profit: number;
   customerName?: string;
   customerPhone?: string;
-  referenceNo?: string;
 }
 
 export interface RoleFormData {
