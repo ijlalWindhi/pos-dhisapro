@@ -356,13 +356,13 @@ export function AuditLogsPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between p-4 border-t">
-                  <div className="text-sm text-gray-500">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t">
+                  <div className="text-sm text-gray-500 order-2 sm:order-1">
                     Halaman {currentPage} dari {totalPages}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 order-1 sm:order-2">
                     <button
-                      className="btn btn-secondary btn-sm"
+                      className="btn btn-secondary btn-sm hidden sm:flex"
                       onClick={() => goToPage(1)}
                       disabled={currentPage === 1}
                     >
@@ -372,20 +372,22 @@ export function AuditLogsPage() {
                       className="btn btn-secondary btn-icon btn-sm"
                       onClick={() => goToPage(currentPage - 1)}
                       disabled={currentPage === 1}
+                      title="Sebelumnya"
                     >
                       <ChevronLeft size={16} />
                     </button>
                     
-                    {/* Page numbers */}
+                    {/* Page numbers - show 3 on mobile, 5 on desktop */}
                     <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      {Array.from({ length: Math.min(typeof window !== 'undefined' && window.innerWidth < 640 ? 3 : 5, totalPages) }, (_, i) => {
+                        const maxVisible = 5;
                         let pageNum: number;
-                        if (totalPages <= 5) {
+                        if (totalPages <= maxVisible) {
                           pageNum = i + 1;
                         } else if (currentPage <= 3) {
                           pageNum = i + 1;
                         } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
+                          pageNum = totalPages - (maxVisible - 1) + i;
                         } else {
                           pageNum = currentPage - 2 + i;
                         }
@@ -393,7 +395,7 @@ export function AuditLogsPage() {
                         return (
                           <button
                             key={pageNum}
-                            className={`btn btn-sm min-w-[36px] ${
+                            className={`btn btn-sm min-w-[32px] sm:min-w-[36px] ${
                               currentPage === pageNum 
                                 ? 'btn-primary' 
                                 : 'btn-secondary'
@@ -410,11 +412,12 @@ export function AuditLogsPage() {
                       className="btn btn-secondary btn-icon btn-sm"
                       onClick={() => goToPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
+                      title="Berikutnya"
                     >
                       <ChevronRight size={16} />
                     </button>
                     <button
-                      className="btn btn-secondary btn-sm"
+                      className="btn btn-secondary btn-sm hidden sm:flex"
                       onClick={() => goToPage(totalPages)}
                       disabled={currentPage === totalPages}
                     >
