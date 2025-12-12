@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { authService } from '../services/authService';
 import { roleService } from '@/features/settings/services/roleService';
+import { getFirstAccessibleRoute } from '@/utils/navigation';
 import type { User, Role, MenuPermission } from '@/types';
 
 interface AuthContextType {
@@ -10,6 +11,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   hasPermission: (permission: MenuPermission) => boolean;
+  getDefaultRoute: () => string;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -92,6 +94,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return permissions.includes(permission);
   };
 
+  const getDefaultRoute = (): string => {
+    return getFirstAccessibleRoute(permissions);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -101,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         hasPermission,
+        getDefaultRoute,
         signIn,
         signOut,
       }}
