@@ -1,20 +1,15 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Tags, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Tags } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { CategoryFormModal } from './components/CategoryFormModal';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from './hooks/useCategories';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { Category } from '@/types';
 
-const emptyFormData = {
-  name: '',
-  description: '',
-  isActive: true,
-};
-
 export function CategoriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState(emptyFormData);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: categories = [], isLoading } = useCategories();
@@ -24,29 +19,16 @@ export function CategoriesPage() {
   const deleteCategory = useDeleteCategory();
 
   const openModal = (category?: Category) => {
-    if (category) {
-      setEditingCategory(category);
-      setFormData({
-        name: category.name,
-        description: category.description || '',
-        isActive: category.isActive,
-      });
-    } else {
-      setEditingCategory(null);
-      setFormData(emptyFormData);
-    }
+    setEditingCategory(category || null);
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setEditingCategory(null);
-    setFormData(emptyFormData);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (formData: { name: string; description: string; isActive: boolean }) => {
     if (editingCategory) {
       await updateCategory.mutateAsync({ 
         id: editingCategory.id, 
@@ -64,10 +46,11 @@ export function CategoriesPage() {
     closeModal();
   };
 
-  const handleDelete = async (id: string) => {
-    const category = categories.find(c => c.id === id);
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    const category = categories.find(c => c.id === deleteConfirm);
     await deleteCategory.mutateAsync({
-      id,
+      id: deleteConfirm,
       categoryName: category?.name || '',
       userId: user?.id || '',
       userName: user?.name || '',
@@ -157,96 +140,24 @@ export function CategoriesPage() {
       </div>
 
       {/* Add/Edit Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">
-                {editingCategory ? 'Edit Kategori' : 'Tambah Kategori Baru'}
-              </h3>
-              <button className="modal-close" onClick={closeModal}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label form-label-required">Nama Kategori</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Contoh: Alat Tulis"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Deskripsi</label>
-                  <textarea
-                    className="form-textarea"
-                    placeholder="Deskripsi singkat kategori"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={2}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    />
-                    <span>Kategori aktif</span>
-                  </label>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  Batal
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={createCategory.isPending || updateCategory.isPending}
-                >
-                  {createCategory.isPending || updateCategory.isPending ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CategoryFormModal
+        isOpen={showModal}
+        category={editingCategory}
+        isSubmitting={createCategory.isPending || updateCategory.isPending}
+        onClose={closeModal}
+        onSubmit={handleSubmit}
+      />
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="modal-overlay">
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Hapus Kategori</h3>
-              <button className="modal-close" onClick={() => setDeleteConfirm(null)}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>Apakah Anda yakin ingin menghapus kategori ini? Produk yang menggunakan kategori ini tidak akan terpengaruh.</p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>
-                Batal
-              </button>
-              <button 
-                className="btn btn-danger"
-                onClick={() => handleDelete(deleteConfirm)}
-                disabled={deleteCategory.isPending}
-              >
-                {deleteCategory.isPending ? 'Menghapus...' : 'Hapus'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Hapus Kategori"
+        message="Apakah Anda yakin ingin menghapus kategori ini? Produk yang menggunakan kategori ini tidak akan terpengaruh."
+        confirmLabel="Ya, Hapus"
+        isLoading={deleteCategory.isPending}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </MainLayout>
   );
 }

@@ -1,26 +1,19 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Users as UsersIcon, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users as UsersIcon } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { UserFormModal } from './components/UserFormModal';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from './hooks/useUsers';
 import { useRoles } from './hooks/useRoles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { User } from '@/types';
 
-const emptyFormData = {
-  email: '',
-  password: '',
-  name: '',
-  roleId: '',
-  isActive: true,
-};
-
 export function UsersPage() {
   const { user: currentUser } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState(emptyFormData);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: users = [], isLoading } = useUsers();
@@ -30,32 +23,23 @@ export function UsersPage() {
   const deleteUser = useDeleteUser();
 
   const openModal = (user?: User) => {
-    if (user) {
-      setEditingUser(user);
-      setFormData({
-        email: user.email,
-        password: '',
-        name: user.name,
-        roleId: user.roleId,
-        isActive: user.isActive,
-      });
-    } else {
-      setEditingUser(null);
-      setFormData(emptyFormData);
-    }
+    setEditingUser(user || null);
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setEditingUser(null);
-    setFormData(emptyFormData);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (editingUser) {
+  const handleSubmit = async (formData: {
+    email: string;
+    password: string;
+    name: string;
+    roleId: string;
+    isActive: boolean;
+  }, isEditing: boolean) => {
+    if (isEditing && editingUser) {
       await updateUser.mutateAsync({ 
         id: editingUser.id, 
         data: {
@@ -82,10 +66,11 @@ export function UsersPage() {
     closeModal();
   };
 
-  const handleDelete = async (id: string) => {
-    const userToDelete = users.find(u => u.id === id);
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    const userToDelete = users.find(u => u.id === deleteConfirm);
     await deleteUser.mutateAsync({
-      id,
+      id: deleteConfirm,
       userNameToDelete: userToDelete?.name || '',
       userId: currentUser?.id || '',
       userName: currentUser?.name || '',
@@ -183,126 +168,25 @@ export function UsersPage() {
       </div>
 
       {/* Add/Edit Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">
-                {editingUser ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
-              </h3>
-              <button className="modal-close" onClick={closeModal}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label className="form-label form-label-required">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Nama pengguna"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label form-label-required">Email</label>
-                  <input
-                    type="email"
-                    className="form-input"
-                    placeholder="email@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                    disabled={!!editingUser}
-                  />
-                </div>
-                {!editingUser && (
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Password</label>
-                    <input
-                      type="password"
-                      className="form-input"
-                      placeholder="Minimal 6 karakter"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="form-label form-label-required">Role</label>
-                  <select
-                    className="form-select"
-                    value={formData.roleId}
-                    onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-                    required
-                  >
-                    <option value="">Pilih Role</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>{role.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    />
-                    <span>Pengguna aktif</span>
-                  </label>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  Batal
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={createUser.isPending || updateUser.isPending}
-                >
-                  {createUser.isPending || updateUser.isPending ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <UserFormModal
+        isOpen={showModal}
+        user={editingUser}
+        roles={roles}
+        isSubmitting={createUser.isPending || updateUser.isPending}
+        onClose={closeModal}
+        onSubmit={handleSubmit}
+      />
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="modal-overlay">
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Hapus Pengguna</h3>
-              <button className="modal-close" onClick={() => setDeleteConfirm(null)}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>Apakah Anda yakin ingin menghapus pengguna ini?</p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>
-                Batal
-              </button>
-              <button 
-                className="btn btn-danger"
-                onClick={() => handleDelete(deleteConfirm)}
-                disabled={deleteUser.isPending}
-              >
-                {deleteUser.isPending ? 'Menghapus...' : 'Hapus'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Hapus Pengguna"
+        message="Apakah Anda yakin ingin menghapus pengguna ini? Akun yang dihapus tidak dapat dipulihkan."
+        confirmLabel="Ya, Hapus"
+        isLoading={deleteUser.isPending}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </MainLayout>
   );
 }

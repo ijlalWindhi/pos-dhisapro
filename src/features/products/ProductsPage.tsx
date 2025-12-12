@@ -1,34 +1,21 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Edit2, Trash2, Package, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Search, Edit2, Trash2, Package } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { ProductFormModal } from './components/ProductFormModal';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from './hooks/useProducts';
 import { useActiveCategories } from '@/features/settings/hooks/useCategories';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
-import type { Product, Category } from '@/types';
-
-
-const emptyFormData = {
-  name: '',
-  sku: '',
-  categoryId: '',
-  price: 0,
-  buyPrice: 0,
-  stock: 0,
-  minStock: 0,
-  unit: 'pcs',
-  isActive: true,
-};
+import { formatCurrency } from '@/utils/format';
+import type { Product } from '@/types';
 
 export function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState(emptyFormData);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [nameError, setNameError] = useState<string | null>(null);
 
   const { data: products = [], isLoading } = useProducts();
   const { data: categories = [] } = useActiveCategories();
@@ -46,112 +33,27 @@ export function ProductsPage() {
     );
   }, [products, searchQuery]);
 
-  // Generate SKU prefix from category name (first 3 letters uppercase)
-  // If conflict exists, use 4th letter instead of 3rd
-  const generateSKUPrefix = useCallback((categoryName: string, allCategories: Category[]): string => {
-    const normalized = categoryName.toUpperCase().replace(/[^A-Z]/g, '');
-    if (normalized.length < 3) return normalized.padEnd(3, 'X');
-    
-    const defaultPrefix = normalized.slice(0, 3);
-    
-    // Check if other categories have the same prefix
-    const conflictingCategories = allCategories.filter(cat => {
-      if (cat.name.toUpperCase() === categoryName.toUpperCase()) return false;
-      const catNormalized = cat.name.toUpperCase().replace(/[^A-Z]/g, '');
-      return catNormalized.slice(0, 3) === defaultPrefix;
-    });
-    
-    // If no conflict, use default prefix
-    if (conflictingCategories.length === 0) {
-      return defaultPrefix;
-    }
-    
-    // If conflict exists, use first 2 letters + 4th letter
-    if (normalized.length >= 4) {
-      return normalized.slice(0, 2) + normalized[3];
-    }
-    
-    return defaultPrefix;
-  }, []);
-
-  // Get next sequence number for a SKU prefix
-  const getNextSequence = useCallback((prefix: string): number => {
-    const existingProducts = products.filter(p => p.sku.startsWith(prefix + '-'));
-    if (existingProducts.length === 0) return 1;
-    
-    const sequences = existingProducts.map(p => {
-      const match = p.sku.match(new RegExp(`^${prefix}-(\\d+)$`));
-      return match ? parseInt(match[1], 10) : 0;
-    });
-    
-    return Math.max(...sequences) + 1;
-  }, [products]);
-
-  // Generate full SKU for a category
-  const generateSKU = useCallback((categoryId: string): string => {
-    const category = categories.find(c => c.id === categoryId);
-    if (!category) return '';
-    
-    const prefix = generateSKUPrefix(category.name, categories);
-    const sequence = getNextSequence(prefix);
-    return `${prefix}-${sequence.toString().padStart(3, '0')}`;
-  }, [categories, generateSKUPrefix, getNextSequence]);
-
-  // Handle category change - auto-generate SKU
-  const handleCategoryChange = (categoryId: string) => {
-    if (!editingProduct) {
-      // Only auto-generate for new products
-      const newSku = generateSKU(categoryId);
-      setFormData({ ...formData, categoryId, sku: newSku });
-    } else {
-      setFormData({ ...formData, categoryId });
-    }
-  };
-
   const openModal = (product?: Product) => {
-    if (product) {
-      setEditingProduct(product);
-      setFormData({
-        name: product.name,
-        sku: product.sku,
-        categoryId: product.categoryId || '',
-        price: product.price,
-        buyPrice: product.buyPrice,
-        stock: product.stock,
-        minStock: product.minStock,
-        unit: product.unit,
-        isActive: product.isActive,
-      });
-    } else {
-      setEditingProduct(null);
-      setFormData(emptyFormData);
-    }
+    setEditingProduct(product || null);
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setEditingProduct(null);
-    setFormData(emptyFormData);
-    setNameError(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Check for duplicate product name
-    const normalizedName = formData.name.trim().toLowerCase();
-    const duplicateProduct = products.find(p => {
-      if (editingProduct && p.id === editingProduct.id) return false;
-      return p.name.trim().toLowerCase() === normalizedName;
-    });
-    
-    if (duplicateProduct) {
-      setNameError('Nama produk sudah digunakan');
-      return;
-    }
-    
-    setNameError(null);
+  const handleSubmit = async (formData: {
+    name: string;
+    sku: string;
+    categoryId: string;
+    price: number;
+    buyPrice: number;
+    stock: number;
+    minStock: number;
+    unit: string;
+    isActive: boolean;
+  }) => {
     const categoryName = categories.find(c => c.id === formData.categoryId)?.name || '';
     
     if (editingProduct) {
@@ -171,10 +73,11 @@ export function ProductsPage() {
     closeModal();
   };
 
-  const handleDelete = async (id: string) => {
-    const product = products.find(p => p.id === id);
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    const product = products.find(p => p.id === deleteConfirm);
     await deleteProduct.mutateAsync({
-      id,
+      id: deleteConfirm,
       productName: product?.name || '',
       userId: user?.id || '',
       userName: user?.name || '',
@@ -250,8 +153,8 @@ export function ProductsPage() {
           >
             <Edit2 size={16} />
           </button>
-          <button 
-            className="btn btn-ghost btn-icon btn-sm" 
+          <button
+            className="btn btn-ghost btn-icon btn-sm text-danger-500"
             title="Hapus"
             onClick={() => setDeleteConfirm(row.original.id)}
           >
@@ -266,8 +169,8 @@ export function ProductsPage() {
     <MainLayout title="Produk">
       <div className="page-header">
         <div>
-          <h2 className="page-title">Daftar Produk</h2>
-          <p className="page-subtitle">Kelola produk dan stok toko Anda</p>
+          <h2 className="page-title">Produk</h2>
+          <p className="page-subtitle">Kelola daftar produk toko</p>
         </div>
         <button className="btn btn-primary" onClick={() => openModal()}>
           <Plus size={18} />
@@ -277,16 +180,18 @@ export function ProductsPage() {
 
       {/* Search */}
       <div className="card mb-4">
-        <div className="p-3">
-          <div className="form-input-wrapper">
-            <Search className="form-input-icon" size={18} />
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Cari produk berdasarkan nama atau SKU..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        <div className="card-body">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                className="form-input pl-10"
+                placeholder="Cari produk..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -303,200 +208,26 @@ export function ProductsPage() {
       </div>
 
       {/* Add/Edit Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">
-                {editingProduct ? 'Edit Produk' : 'Tambah Produk Baru'}
-              </h3>
-              <button className="modal-close" onClick={closeModal}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                <div className="grid grid-2">
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Nama Produk</label>
-                    <input
-                      type="text"
-                      className={`form-input ${nameError ? 'border-danger-500' : ''}`}
-                      placeholder="Contoh: Buku Tulis Sidu"
-                      value={formData.name}
-                      onChange={(e) => {
-                        setFormData({ ...formData, name: e.target.value });
-                        if (nameError) setNameError(null);
-                      }}
-                      required
-                    />
-                    {nameError && (
-                      <p className="text-xs text-danger-500 mt-1">{nameError}</p>
-                    )}
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label form-label-required">SKU</label>
-                    <input
-                      type="text"
-                      className="form-input bg-gray-100 cursor-not-allowed"
-                      placeholder="Pilih kategori terlebih dahulu"
-                      value={formData.sku}
-                      disabled
-                      required
-                    />
-                    <p className="text-xs text-gray-400 mt-1">SKU otomatis berdasarkan kategori</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-2">
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Kategori</label>
-                    <select
-                      className="form-select"
-                      value={formData.categoryId}
-                      onChange={(e) => handleCategoryChange(e.target.value)}
-                      required
-                    >
-                      <option value="">Pilih Kategori</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                    {categories.length === 0 && (
-                      <p className="form-help">Tambahkan kategori terlebih dahulu di menu Kategori</p>
-                    )}
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Satuan</label>
-                    <select
-                      className="form-select"
-                      value={formData.unit}
-                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    >
-                      <option value="pcs">pcs</option>
-                      <option value="box">box</option>
-                      <option value="pak">pak</option>
-                      <option value="lusin">lusin</option>
-                      <option value="rim">rim</option>
-                      <option value="kg">kg</option>
-                      <option value="gram">gram</option>
-                      <option value="liter">liter</option>
-                      <option value="ml">ml</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-2">
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Harga Beli</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="0"
-                      inputMode="numeric"
-                      value={formatNumber(formData.buyPrice)}
-                      onChange={(e) => setFormData({ ...formData, buyPrice: parseNumber(e.target.value) })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Harga Jual</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="0"
-                      inputMode="numeric"
-                      value={formatNumber(formData.price)}
-                      onChange={(e) => setFormData({ ...formData, price: parseNumber(e.target.value) })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-2">
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Stok Awal</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="0"
-                      inputMode="numeric"
-                      value={formatNumber(formData.stock)}
-                      onChange={(e) => setFormData({ ...formData, stock: parseNumber(e.target.value) })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Stok Minimum</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="0"
-                      inputMode="numeric"
-                      value={formatNumber(formData.minStock)}
-                      onChange={(e) => setFormData({ ...formData, minStock: parseNumber(e.target.value) })}
-                      required
-                    />
-                    <p className="text-xs text-gray-400 mt-1">Peringatan jika stok di bawah ini</p>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    />
-                    <span>Produk aktif (dapat dijual)</span>
-                  </label>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  Batal
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={createProduct.isPending || updateProduct.isPending || !formData.sku}
-                >
-                  {createProduct.isPending || updateProduct.isPending ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ProductFormModal
+        isOpen={showModal}
+        product={editingProduct}
+        categories={categories}
+        existingProducts={products}
+        isSubmitting={createProduct.isPending || updateProduct.isPending}
+        onClose={closeModal}
+        onSubmit={handleSubmit}
+      />
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="modal-overlay">
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Hapus Produk</h3>
-              <button className="modal-close" onClick={() => setDeleteConfirm(null)}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>Apakah Anda yakin ingin menghapus produk ini?</p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setDeleteConfirm(null)}>
-                Batal
-              </button>
-              <button 
-                className="btn btn-danger"
-                onClick={() => handleDelete(deleteConfirm)}
-                disabled={deleteProduct.isPending}
-              >
-                {deleteProduct.isPending ? 'Menghapus...' : 'Hapus'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Hapus Produk"
+        message="Apakah Anda yakin ingin menghapus produk ini?"
+        confirmLabel="Ya, Hapus"
+        isLoading={deleteProduct.isPending}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </MainLayout>
   );
 }
