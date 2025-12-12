@@ -39,7 +39,7 @@ export function LoginPage() {
         <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center mx-auto mb-4 text-white">
           <Store size={32} />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">POS DhisaPro</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">POS UD Cahaya</h1>
         <p className="text-sm text-gray-500 mb-6">Masuk untuk mengelola toko Anda</p>
         
         <form onSubmit={handleSubmit} className="text-left">

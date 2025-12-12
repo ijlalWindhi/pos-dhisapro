@@ -108,7 +108,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
             <div className="w-9 h-9 bg-primary-500 rounded-lg flex items-center justify-center shrink-0">
               <Store size={20} />
             </div>
-            {!isCollapsed && <span className="text-lg font-bold">DhisaPro</span>}
+            {!isCollapsed && <span className="text-lg font-bold">UD Cahaya</span>}
           </div>
         </div>
 

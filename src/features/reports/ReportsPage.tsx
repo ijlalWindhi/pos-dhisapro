@@ -259,7 +259,7 @@ export function ReportsPage() {
       // Generate file
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([wbout], { type: 'application/octet-stream' });
-      const filename = `Laporan_POS_DhisaPro_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const filename = `Laporan_POS_UD_Cahaya_${new Date().toISOString().split('T')[0]}.xlsx`;
       saveAs(blob, filename);
     } catch (error) {
       console.error('Export error:', error);

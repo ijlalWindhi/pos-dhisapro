@@ -49,6 +49,9 @@ export function MainLayout({ children, title }: MainLayoutProps) {
           <div className="flex-1 p-4 md:p-4">
             {children}
           </div>
+          <footer className="py-2 px-6 text-center text-sm text-gray-500 border-t border-gray-200 bg-white">
+            © {new Date().getFullYear()} Dhisa Production. All rights reserved.
+          </footer>
         </main>
       </div>
     </SidebarContext.Provider>
