@@ -45,6 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Try to get user data from Firestore
           const userData = await authService.getUserData(firebaseUser.uid);
           if (userData) {
+            // Check if user is active
+            if (!userData.isActive) {
+              // Sign out inactive user
+              await authService.signOut();
+              setUser(null);
+              setRole(null);
+              setPermissions([]);
+              setIsLoading(false);
+              return;
+            }
+            
             setUser(userData);
             await loadUserRole(userData.roleId);
           } else {

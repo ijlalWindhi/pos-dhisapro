@@ -37,6 +37,13 @@ export const authService = {
       userData = { id: firebaseUser.uid, ...newUser };
     }
     
+    // Check if user is active
+    if (!userData.isActive) {
+      // Sign out the user immediately
+      await this.signOut();
+      throw new Error('Akun Anda tidak aktif. Silakan hubungi administrator.');
+    }
+    
     return userData;
   },
 
