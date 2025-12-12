@@ -100,18 +100,44 @@ export async function createAuditLog(
   afterData: Record<string, unknown> | null = null
 ): Promise<void> {
   try {
-    await auditLogService.log(
+    // Validate required fields
+    if (!module || !action || !entityId || !entityName) {
+      console.warn('Audit log skipped: missing required fields', { module, action, entityId, entityName });
+      return;
+    }
+    
+    // Use fallback for missing user info
+    const safeUserId = userId || 'unknown';
+    const safeUserName = userName || 'Unknown User';
+    
+    if (!userId || !userName) {
+      console.warn('Audit log: missing user info, using fallback', { userId, userName });
+    }
+    
+    const logId = await auditLogService.log(
+      module,
+      action,
+      entityId,
+      entityName,
+      safeUserId,
+      safeUserName,
+      beforeData,
+      afterData
+    );
+    
+    console.log(`Audit log created: ${action} ${module} - ${entityName} (ID: ${logId})`);
+  } catch (error) {
+    // Log the error with details for debugging
+    console.error('Failed to create audit log:', {
+      error,
       module,
       action,
       entityId,
       entityName,
       userId,
       userName,
-      beforeData,
-      afterData
-    );
-  } catch (error) {
-    console.error('Failed to create audit log:', error);
+    });
     // Don't throw - audit logging should not break the main operation
   }
 }
+
