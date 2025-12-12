@@ -71,6 +71,8 @@ export function BrilinkPage() {
         await updateTransaction.mutateAsync({
           id: editingTransaction.id,
           data: formData,
+          userId: user.id,
+          userName: user.name,
         });
       } else {
         await createTransaction.mutateAsync({

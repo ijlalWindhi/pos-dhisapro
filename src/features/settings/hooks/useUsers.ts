@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../services/userService';
+import { createAuditLog } from '@/features/audit/services/auditLogService';
 import type { UserFormData } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -24,14 +25,45 @@ export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: UserFormData & { password: string }) => 
-      userService.create({
+    mutationFn: async ({ 
+      data, 
+      userId, 
+      userName 
+    }: { 
+      data: UserFormData & { password: string }; 
+      userId: string; 
+      userName: string;
+    }) => {
+      const id = await userService.create({
         email: data.email,
         password: data.password,
         name: data.name,
         roleId: data.roleId,
         isActive: data.isActive,
-      }),
+      });
+      
+      // Don't log password in audit
+      const auditData = { 
+        email: data.email, 
+        name: data.name, 
+        roleId: data.roleId, 
+        isActive: data.isActive,
+        id 
+      };
+      
+      await createAuditLog(
+        'users',
+        'create',
+        id,
+        data.name,
+        userId,
+        userName,
+        null,
+        auditData
+      );
+      
+      return id;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Pengguna berhasil ditambahkan');
@@ -51,8 +83,34 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<{ name: string; roleId: string; isActive: boolean }> }) =>
-      userService.update(id, data),
+    mutationFn: async ({ 
+      id, 
+      data, 
+      userId, 
+      userName 
+    }: { 
+      id: string; 
+      data: Partial<{ name: string; roleId: string; isActive: boolean }>; 
+      userId: string; 
+      userName: string;
+    }) => {
+      const beforeUser = await userService.getById(id);
+      
+      await userService.update(id, data);
+      
+      if (beforeUser) {
+        await createAuditLog(
+          'users',
+          'update',
+          id,
+          beforeUser.name,
+          userId,
+          userName,
+          beforeUser as unknown as Record<string, unknown>,
+          { ...beforeUser, ...data } as unknown as Record<string, unknown>
+        );
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Pengguna berhasil diperbarui');
@@ -68,7 +126,32 @@ export function useDeleteUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => userService.delete(id),
+    mutationFn: async ({ 
+      id, 
+      userNameToDelete,
+      userId, 
+      userName 
+    }: { 
+      id: string; 
+      userNameToDelete: string;
+      userId: string; 
+      userName: string;
+    }) => {
+      const beforeUser = await userService.getById(id);
+      
+      await userService.delete(id);
+      
+      await createAuditLog(
+        'users',
+        'delete',
+        id,
+        userNameToDelete,
+        userId,
+        userName,
+        beforeUser as unknown as Record<string, unknown>,
+        null
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Pengguna berhasil dihapus');

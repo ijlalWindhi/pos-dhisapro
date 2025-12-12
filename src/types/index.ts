@@ -7,7 +7,8 @@ export type MenuPermission =
   | 'brilink'
   | 'reports'
   | 'users'
-  | 'roles';
+  | 'roles'
+  | 'audit_logs';
 
 export const ALL_MENU_PERMISSIONS: { key: MenuPermission; label: string; path: string }[] = [
   { key: 'dashboard', label: 'Dashboard', path: '/' },
@@ -18,6 +19,7 @@ export const ALL_MENU_PERMISSIONS: { key: MenuPermission; label: string; path: s
   { key: 'reports', label: 'Laporan', path: '/reports' },
   { key: 'users', label: 'Pengguna', path: '/users' },
   { key: 'roles', label: 'Role', path: '/roles' },
+  { key: 'audit_logs', label: 'Audit Log', path: '/audit-logs' },
 ];
 
 // Role types
@@ -183,4 +185,28 @@ export interface CategoryFormData {
   name: string;
   description?: string;
   isActive: boolean;
+}
+
+// Audit Log types
+export type AuditModule = 
+  | 'products'
+  | 'categories'
+  | 'sales'
+  | 'brilink'
+  | 'users'
+  | 'roles';
+
+export type AuditAction = 'create' | 'update' | 'delete';
+
+export interface AuditLog {
+  id: string;
+  module: AuditModule;
+  action: AuditAction;
+  entityId: string;
+  entityName: string;
+  userId: string;
+  userName: string;
+  beforeData: Record<string, unknown> | null;
+  afterData: Record<string, unknown> | null;
+  createdAt: Date;
 }

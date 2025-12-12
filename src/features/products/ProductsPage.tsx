@@ -5,6 +5,7 @@ import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from './hooks/useProducts';
 import { useActiveCategories } from '@/features/settings/hooks/useCategories';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
 import type { Product, Category } from '@/types';
 
@@ -31,6 +32,7 @@ export function ProductsPage() {
 
   const { data: products = [], isLoading } = useProducts();
   const { data: categories = [] } = useActiveCategories();
+  const { user } = useAuth();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
@@ -155,16 +157,28 @@ export function ProductsPage() {
     if (editingProduct) {
       await updateProduct.mutateAsync({ 
         id: editingProduct.id, 
-        data: { ...formData, categoryName } 
+        data: { ...formData, categoryName },
+        userId: user?.id || '',
+        userName: user?.name || '',
       });
     } else {
-      await createProduct.mutateAsync({ ...formData, categoryName });
+      await createProduct.mutateAsync({ 
+        data: { ...formData, categoryName },
+        userId: user?.id || '',
+        userName: user?.name || '',
+      });
     }
     closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await deleteProduct.mutateAsync(id);
+    const product = products.find(p => p.id === id);
+    await deleteProduct.mutateAsync({
+      id,
+      productName: product?.name || '',
+      userId: user?.id || '',
+      userName: user?.name || '',
+    });
     setDeleteConfirm(null);
   };
 

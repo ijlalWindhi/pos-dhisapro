@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Edit2, Trash2, Tags, X } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from './hooks/useCategories';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { Category } from '@/types';
 
 const emptyFormData = {
@@ -17,6 +18,7 @@ export function CategoriesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: categories = [], isLoading } = useCategories();
+  const { user } = useAuth();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
@@ -46,15 +48,30 @@ export function CategoriesPage() {
     e.preventDefault();
     
     if (editingCategory) {
-      await updateCategory.mutateAsync({ id: editingCategory.id, data: formData });
+      await updateCategory.mutateAsync({ 
+        id: editingCategory.id, 
+        data: formData,
+        userId: user?.id || '',
+        userName: user?.name || '',
+      });
     } else {
-      await createCategory.mutateAsync(formData);
+      await createCategory.mutateAsync({
+        data: formData,
+        userId: user?.id || '',
+        userName: user?.name || '',
+      });
     }
     closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await deleteCategory.mutateAsync(id);
+    const category = categories.find(c => c.id === id);
+    await deleteCategory.mutateAsync({
+      id,
+      categoryName: category?.name || '',
+      userId: user?.id || '',
+      userName: user?.name || '',
+    });
     setDeleteConfirm(null);
   };
 

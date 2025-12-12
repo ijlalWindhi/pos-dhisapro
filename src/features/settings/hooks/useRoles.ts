@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { roleService } from '../services/roleService';
+import { createAuditLog } from '@/features/audit/services/auditLogService';
 import type { RoleFormData } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -24,7 +25,30 @@ export function useCreateRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: RoleFormData) => roleService.create(data),
+    mutationFn: async ({ 
+      data, 
+      userId, 
+      userName 
+    }: { 
+      data: RoleFormData; 
+      userId: string; 
+      userName: string;
+    }) => {
+      const id = await roleService.create(data);
+      
+      await createAuditLog(
+        'roles',
+        'create',
+        id,
+        data.name,
+        userId,
+        userName,
+        null,
+        { ...data, id }
+      );
+      
+      return id;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Role berhasil ditambahkan');
@@ -40,8 +64,34 @@ export function useUpdateRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<RoleFormData> }) =>
-      roleService.update(id, data),
+    mutationFn: async ({ 
+      id, 
+      data, 
+      userId, 
+      userName 
+    }: { 
+      id: string; 
+      data: Partial<RoleFormData>; 
+      userId: string; 
+      userName: string;
+    }) => {
+      const beforeRole = await roleService.getById(id);
+      
+      await roleService.update(id, data);
+      
+      if (beforeRole) {
+        await createAuditLog(
+          'roles',
+          'update',
+          id,
+          beforeRole.name,
+          userId,
+          userName,
+          beforeRole as unknown as Record<string, unknown>,
+          { ...beforeRole, ...data } as unknown as Record<string, unknown>
+        );
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Role berhasil diperbarui');
@@ -57,7 +107,32 @@ export function useDeleteRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => roleService.delete(id),
+    mutationFn: async ({ 
+      id, 
+      roleName,
+      userId, 
+      userName 
+    }: { 
+      id: string; 
+      roleName: string;
+      userId: string; 
+      userName: string;
+    }) => {
+      const beforeRole = await roleService.getById(id);
+      
+      await roleService.delete(id);
+      
+      await createAuditLog(
+        'roles',
+        'delete',
+        id,
+        roleName,
+        userId,
+        userName,
+        beforeRole as unknown as Record<string, unknown>,
+        null
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Role berhasil dihapus');

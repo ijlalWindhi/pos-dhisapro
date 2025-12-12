@@ -3,6 +3,7 @@ import { ArrowLeft, ShoppingCart, Edit2, X, Plus, Minus } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { MainLayout } from '@/components/layout';
 import { useTodayTransactions, useUpdateTransactionWithItems } from './hooks/useTransactions';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatCurrency } from '@/utils/format';
 import type { Transaction, TransactionItem } from '@/types';
 
@@ -13,6 +14,7 @@ interface EditableItem extends TransactionItem {
 export function SalesDetailPage() {
   const { data: transactions = [], isLoading } = useTodayTransactions();
   const updateTransaction = useUpdateTransactionWithItems();
+  const { user } = useAuth();
   
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editItems, setEditItems] = useState<EditableItem[]>([]);
@@ -90,6 +92,8 @@ export function SalesDetailPage() {
         })),
         paymentMethod,
         amountPaid,
+        userId: user?.id,
+        userName: user?.name,
       });
       closeEditForm();
     } catch (error) {

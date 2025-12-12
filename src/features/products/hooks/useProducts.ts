@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService } from '../services/productService';
+import { createAuditLog } from '@/features/audit/services/auditLogService';
 import type { Product } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -31,8 +32,31 @@ export function useCreateProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) =>
-      productService.create(data),
+    mutationFn: async ({ 
+      data, 
+      userId, 
+      userName 
+    }: { 
+      data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>; 
+      userId: string; 
+      userName: string;
+    }) => {
+      const id = await productService.create(data);
+      
+      // Log audit
+      await createAuditLog(
+        'products',
+        'create',
+        id,
+        data.name,
+        userId,
+        userName,
+        null,
+        { ...data, id }
+      );
+      
+      return id;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Produk berhasil ditambahkan');
@@ -48,8 +72,36 @@ export function useUpdateProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Product, 'id' | 'createdAt'>> }) =>
-      productService.update(id, data),
+    mutationFn: async ({ 
+      id, 
+      data, 
+      userId, 
+      userName 
+    }: { 
+      id: string; 
+      data: Partial<Omit<Product, 'id' | 'createdAt'>>; 
+      userId: string; 
+      userName: string;
+    }) => {
+      // Get before data
+      const beforeProduct = await productService.getById(id);
+      
+      await productService.update(id, data);
+      
+      // Log audit
+      if (beforeProduct) {
+        await createAuditLog(
+          'products',
+          'update',
+          id,
+          beforeProduct.name,
+          userId,
+          userName,
+          beforeProduct as unknown as Record<string, unknown>,
+          { ...beforeProduct, ...data } as unknown as Record<string, unknown>
+        );
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Produk berhasil diperbarui');
@@ -65,7 +117,34 @@ export function useDeleteProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => productService.delete(id),
+    mutationFn: async ({ 
+      id, 
+      productName,
+      userId, 
+      userName 
+    }: { 
+      id: string; 
+      productName: string;
+      userId: string; 
+      userName: string;
+    }) => {
+      // Get before data
+      const beforeProduct = await productService.getById(id);
+      
+      await productService.delete(id);
+      
+      // Log audit
+      await createAuditLog(
+        'products',
+        'delete',
+        id,
+        productName,
+        userId,
+        userName,
+        beforeProduct as unknown as Record<string, unknown>,
+        null
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Produk berhasil dihapus');

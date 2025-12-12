@@ -9,7 +9,8 @@ import {
   LogOut,
   Users,
   Shield,
-  Tags
+  Tags,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { MenuPermission } from '@/types';
@@ -44,6 +45,7 @@ const navItems: {
     items: [
       { to: '/users', label: 'Pengguna', icon: Users, permission: 'users' },
       { to: '/roles', label: 'Role', icon: Shield, permission: 'roles' },
+      { to: '/audit-logs', label: 'Audit Log', icon: FileText, permission: 'audit_logs' },
     ],
   },
 ];

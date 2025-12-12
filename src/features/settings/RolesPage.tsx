@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Edit2, Trash2, Shield, X } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
 import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from './hooks/useRoles';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ALL_MENU_PERMISSIONS, type Role, type MenuPermission } from '@/types';
 
 const emptyFormData = {
@@ -17,6 +18,7 @@ export function RolesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const { data: roles = [], isLoading } = useRoles();
+  const { user } = useAuth();
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
@@ -55,15 +57,30 @@ export function RolesPage() {
     e.preventDefault();
     
     if (editingRole) {
-      await updateRole.mutateAsync({ id: editingRole.id, data: formData });
+      await updateRole.mutateAsync({ 
+        id: editingRole.id, 
+        data: formData,
+        userId: user?.id || '',
+        userName: user?.name || '',
+      });
     } else {
-      await createRole.mutateAsync(formData);
+      await createRole.mutateAsync({
+        data: formData,
+        userId: user?.id || '',
+        userName: user?.name || '',
+      });
     }
     closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await deleteRole.mutateAsync(id);
+    const role = roles.find(r => r.id === id);
+    await deleteRole.mutateAsync({
+      id,
+      roleName: role?.name || '',
+      userId: user?.id || '',
+      userName: user?.name || '',
+    });
     setDeleteConfirm(null);
   };
 

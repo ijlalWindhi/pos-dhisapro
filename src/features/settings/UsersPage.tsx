@@ -62,22 +62,34 @@ export function UsersPage() {
           name: formData.name,
           roleId: formData.roleId,
           isActive: formData.isActive,
-        }
+        },
+        userId: currentUser?.id || '',
+        userName: currentUser?.name || '',
       });
     } else {
       await createUser.mutateAsync({
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        roleId: formData.roleId,
-        isActive: formData.isActive,
+        data: {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          roleId: formData.roleId,
+          isActive: formData.isActive,
+        },
+        userId: currentUser?.id || '',
+        userName: currentUser?.name || '',
       });
     }
     closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await deleteUser.mutateAsync(id);
+    const userToDelete = users.find(u => u.id === id);
+    await deleteUser.mutateAsync({
+      id,
+      userNameToDelete: userToDelete?.name || '',
+      userId: currentUser?.id || '',
+      userName: currentUser?.name || '',
+    });
     setDeleteConfirm(null);
   };
 

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '../services/transactionService';
+import { createAuditLog } from '@/features/audit/services/auditLogService';
 import type { CartItem } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -37,7 +38,7 @@ export function useCreateTransaction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       cart,
       paymentMethod,
       amountPaid,
@@ -51,8 +52,36 @@ export function useCreateTransaction() {
       discount: number;
       cashierId: string;
       cashierName: string;
-    }) =>
-      transactionService.create(cart, paymentMethod, amountPaid, discount, cashierId, cashierName),
+    }) => {
+      const id = await transactionService.create(cart, paymentMethod, amountPaid, discount, cashierId, cashierName);
+      
+      const total = cart.reduce((sum, item) => sum + item.subtotal, 0) - discount;
+      const itemsSummary = cart.map(item => `${item.product.name} x${item.quantity}`).join(', ');
+      
+      await createAuditLog(
+        'sales',
+        'create',
+        id,
+        `Transaksi ${itemsSummary}`,
+        cashierId,
+        cashierName,
+        null,
+        {
+          id,
+          items: cart.map(item => ({
+            productId: item.product.id,
+            productName: item.product.name,
+            quantity: item.quantity,
+            subtotal: item.subtotal,
+          })),
+          total,
+          paymentMethod,
+          amountPaid,
+        }
+      );
+      
+      return id;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -94,19 +123,51 @@ export function useUpdateTransactionWithItems() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       id,
       originalItems,
       newItems,
       paymentMethod,
       amountPaid,
+      userId,
+      userName,
     }: {
       id: string;
       originalItems: { productId: string; quantity: number }[];
       newItems: { productId: string; productName: string; quantity: number; price: number; buyPrice: number; subtotal: number }[];
       paymentMethod: 'cash' | 'transfer' | 'qris';
       amountPaid: number;
-    }) => transactionService.updateWithItems(id, originalItems, newItems, paymentMethod, amountPaid),
+      userId?: string;
+      userName?: string;
+    }) => {
+      await transactionService.updateWithItems(id, originalItems, newItems, paymentMethod, amountPaid);
+      
+      if (userId && userName) {
+        const itemsSummary = newItems.map(item => `${item.productName} x${item.quantity}`).join(', ');
+        
+        await createAuditLog(
+          'sales',
+          'update',
+          id,
+          `Transaksi ${itemsSummary}`,
+          userId,
+          userName,
+          {
+            items: originalItems,
+          },
+          {
+            items: newItems.map(item => ({
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+              subtotal: item.subtotal,
+            })),
+            paymentMethod,
+            amountPaid,
+          }
+        );
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: ['products'] });

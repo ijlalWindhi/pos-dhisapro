@@ -10,6 +10,7 @@ export const navRoutes: { permission: MenuPermission; path: string; label: strin
   { permission: 'reports', path: '/reports', label: 'Laporan' },
   { permission: 'users', path: '/users', label: 'Pengguna' },
   { permission: 'roles', path: '/roles', label: 'Role' },
+  { permission: 'audit_logs', path: '/audit-logs', label: 'Audit Log' },
 ];
 
 /**

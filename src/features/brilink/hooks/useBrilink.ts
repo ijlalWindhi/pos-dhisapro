@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { brilinkService } from '../services/brilinkService';
+import { createAuditLog } from '@/features/audit/services/auditLogService';
 import type { BRILinkFormData } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -44,7 +45,7 @@ export function useCreateBrilinkTransaction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       data,
       operatorId,
       operatorName,
@@ -52,7 +53,22 @@ export function useCreateBrilinkTransaction() {
       data: BRILinkFormData;
       operatorId: string;
       operatorName: string;
-    }) => brilinkService.create(data, operatorId, operatorName),
+    }) => {
+      const id = await brilinkService.create(data, operatorId, operatorName);
+      
+      await createAuditLog(
+        'brilink',
+        'create',
+        id,
+        `${data.transactionType} - ${data.accountName}`,
+        operatorId,
+        operatorName,
+        null,
+        { ...data, id }
+      );
+      
+      return id;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Transaksi BRILink berhasil disimpan');
@@ -68,8 +84,36 @@ export function useUpdateBrilinkTransaction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: BRILinkFormData }) =>
-      brilinkService.update(id, data),
+    mutationFn: async ({ 
+      id, 
+      data,
+      userId,
+      userName,
+    }: { 
+      id: string; 
+      data: BRILinkFormData;
+      userId?: string;
+      userName?: string;
+    }) => {
+      // Get before data
+      const transactions = await brilinkService.getToday();
+      const beforeData = transactions.find(t => t.id === id);
+      
+      await brilinkService.update(id, data);
+      
+      if (userId && userName) {
+        await createAuditLog(
+          'brilink',
+          'update',
+          id,
+          `${data.transactionType} - ${data.accountName}`,
+          userId,
+          userName,
+          beforeData as unknown as Record<string, unknown>,
+          { ...data, id }
+        );
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success('Transaksi BRILink berhasil diupdate');
@@ -80,4 +124,3 @@ export function useUpdateBrilinkTransaction() {
     },
   });
 }
-
