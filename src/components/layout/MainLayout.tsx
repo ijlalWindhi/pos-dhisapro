@@ -27,7 +27,7 @@ export function MainLayout({ children, title }: MainLayoutProps) {
 
   return (
     <SidebarContext.Provider value={{ isCollapsed, toggleCollapsed }}>
-      <div className="flex min-h-screen w-screen">
+      <div className="flex min-h-screen w-full">
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={() => setSidebarOpen(false)} 
