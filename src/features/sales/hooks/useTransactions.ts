@@ -179,3 +179,62 @@ export function useUpdateTransactionWithItems() {
     },
   });
 }
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      items,
+      transactionName,
+      userId,
+      userName,
+    }: {
+      id: string;
+      items: { productId: string; quantity: number }[];
+      transactionName: string;
+      userId?: string;
+      userName?: string;
+    }) => {
+      // Get transaction data for audit log before delete
+      const transactions = await transactionService.getToday();
+      const transaction = transactions.find(t => t.id === id);
+      
+      await transactionService.delete(id, items);
+      
+      if (userId && userName && transaction) {
+        await createAuditLog(
+          'sales',
+          'delete',
+          id,
+          transactionName,
+          userId,
+          userName,
+          {
+            items: transaction.items.map(item => ({
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+              subtotal: item.subtotal,
+            })),
+            paymentMethod: transaction.paymentMethod,
+            total: transaction.total,
+            amountPaid: transaction.amountPaid,
+          },
+          null
+        );
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success('Transaksi berhasil dihapus');
+    },
+    onError: (error) => {
+      toast.error('Gagal menghapus transaksi');
+      console.error('Delete transaction error:', error);
+    },
+  });
+}
+

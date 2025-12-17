@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ShoppingCart, Edit2, X, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Edit2, Trash2, X, Plus, Minus } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { MainLayout } from '@/components/layout';
-import { useTodayTransactions, useUpdateTransactionWithItems } from './hooks/useTransactions';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useTodayTransactions, useUpdateTransactionWithItems, useDeleteTransaction } from './hooks/useTransactions';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatCurrency } from '@/utils/format';
 import type { Transaction, TransactionItem } from '@/types';
@@ -14,12 +15,14 @@ interface EditableItem extends TransactionItem {
 export function SalesDetailPage() {
   const { data: transactions = [], isLoading } = useTodayTransactions();
   const updateTransaction = useUpdateTransactionWithItems();
+  const deleteTransaction = useDeleteTransaction();
   const { user } = useAuth();
   
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editItems, setEditItems] = useState<EditableItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'qris'>('cash');
   const [amountPaid, setAmountPaid] = useState(0);
+  const [deleteConfirm, setDeleteConfirm] = useState<Transaction | null>(null);
 
   const openEditForm = (tx: Transaction) => {
     setEditingTransaction(tx);
@@ -101,6 +104,24 @@ export function SalesDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    
+    const itemsSummary = deleteConfirm.items.map(item => `${item.productName} x${item.quantity}`).join(', ');
+    
+    await deleteTransaction.mutateAsync({
+      id: deleteConfirm.id,
+      items: deleteConfirm.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      })),
+      transactionName: `Transaksi ${itemsSummary}`,
+      userId: user?.id,
+      userName: user?.name,
+    });
+    setDeleteConfirm(null);
+  };
+
   const todayTotal = transactions.reduce((sum, tx) => sum + tx.total, 0);
 
   return (
@@ -141,7 +162,7 @@ export function SalesDetailPage() {
                   <th className="text-right">Total</th>
                   <th className="text-right">Bayar</th>
                   <th className="text-right">Kembalian</th>
-                  <th className="text-center w-20">Aksi</th>
+                  <th className="text-center w-24">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,13 +214,22 @@ export function SalesDetailPage() {
                       <td className="text-right">{formatCurrency(tx.amountPaid)}</td>
                       <td className="text-right text-success-600">{formatCurrency(tx.change)}</td>
                       <td className="text-center">
-                        <button
-                          className="btn btn-ghost btn-icon btn-sm"
-                          title="Edit"
-                          onClick={() => openEditForm(tx)}
-                        >
-                          <Edit2 size={16} />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            title="Edit"
+                            onClick={() => openEditForm(tx)}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm text-danger-500"
+                            title="Hapus"
+                            onClick={() => setDeleteConfirm(tx)}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -330,6 +360,17 @@ export function SalesDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteConfirm}
+        title="Hapus Transaksi"
+        message={`Apakah Anda yakin ingin menghapus transaksi ini? Stok produk akan dikembalikan. Transaksi: ${deleteConfirm?.items.map(item => `${item.productName} x${item.quantity}`).join(', ') || ''}`}
+        confirmLabel="Ya, Hapus"
+        isLoading={deleteTransaction.isPending}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </MainLayout>
   );
 }

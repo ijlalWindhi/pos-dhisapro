@@ -167,6 +167,19 @@ export const transactionService = {
     });
   },
 
+  // Delete transaction and restore stock
+  async delete(id: string, items: { productId: string; quantity: number }[]): Promise<void> {
+    const { deleteDoc } = await import('firebase/firestore');
+    const docRef = doc(db, COLLECTION, id);
+    
+    // Restore stock for all items in the transaction
+    for (const item of items) {
+      await productService.updateStock(item.productId, item.quantity);
+    }
+    
+    await deleteDoc(docRef);
+  },
+
   // Get sales summary
   async getSummary(startDate: Date, endDate: Date): Promise<{
     totalSales: number;
@@ -179,3 +192,4 @@ export const transactionService = {
     };
   },
 };
+
