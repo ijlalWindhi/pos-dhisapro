@@ -65,6 +65,8 @@ export const transactionService = {
     const items: TransactionItem[] = cart.map((item) => ({
       productId: item.product.id,
       productName: item.product.name,
+      categoryId: item.product.categoryId,
+      categoryName: item.product.categoryName,
       quantity: item.quantity,
       price: item.product.price,
       buyPrice: item.product.buyPrice,

@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ShoppingCart, Edit2, Trash2, X, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Edit2, Trash2, X, Plus, Minus, DollarSign, Tag } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { MainLayout } from '@/components/layout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useTodayTransactions, useUpdateTransactionWithItems, useDeleteTransaction } from './hooks/useTransactions';
+import { useCategories } from '@/features/settings/hooks/useCategories';
+import { useProducts } from '@/features/products/hooks/useProducts';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatCurrency } from '@/utils/format';
 import type { Transaction, TransactionItem } from '@/types';
@@ -14,6 +16,8 @@ interface EditableItem extends TransactionItem {
 
 export function SalesDetailPage() {
   const { data: transactions = [], isLoading } = useTodayTransactions();
+  const { data: categories = [] } = useCategories();
+  const { data: products = [] } = useProducts();
   const updateTransaction = useUpdateTransactionWithItems();
   const deleteTransaction = useDeleteTransaction();
   const { user } = useAuth();
@@ -23,6 +27,19 @@ export function SalesDetailPage() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'qris'>('cash');
   const [amountPaid, setAmountPaid] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState<Transaction | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  // Create product -> category mapping for items without categoryId
+  const productCategoryMap = useMemo(() => {
+    const map = new Map<string, { categoryId?: string; categoryName?: string }>();
+    products.forEach(product => {
+      map.set(product.id, {
+        categoryId: product.categoryId,
+        categoryName: product.categoryName,
+      });
+    });
+    return map;
+  }, [products]);
 
   const openEditForm = (tx: Transaction) => {
     setEditingTransaction(tx);
@@ -66,6 +83,41 @@ export function SalesDetailPage() {
   const editTotal = useMemo(() => {
     return editItems.reduce((sum, item) => sum + item.subtotal, 0);
   }, [editItems]);
+
+  // Calculate totals based on category filter
+  const { filteredTotal, filteredTransactionCount, filteredItemCount } = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return {
+        filteredTotal: transactions.reduce((sum, tx) => sum + tx.total, 0),
+        filteredTransactionCount: transactions.length,
+        filteredItemCount: transactions.reduce((sum, tx) => sum + tx.items.length, 0),
+      };
+    }
+
+    let total = 0;
+    let itemCount = 0;
+    const transactionsWithCategory = new Set<string>();
+
+    transactions.forEach(tx => {
+      tx.items.forEach(item => {
+        // Get category from item or lookup from products
+        const itemCategoryId = item.categoryId || productCategoryMap.get(item.productId)?.categoryId;
+        
+        // Check if item belongs to selected category
+        if (itemCategoryId === selectedCategory) {
+          total += item.subtotal;
+          itemCount++;
+          transactionsWithCategory.add(tx.id);
+        }
+      });
+    });
+
+    return {
+      filteredTotal: total,
+      filteredTransactionCount: transactionsWithCategory.size,
+      filteredItemCount: itemCount,
+    };
+  }, [transactions, selectedCategory, productCategoryMap]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,9 +195,47 @@ export function SalesDetailPage() {
             </p>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-sm text-gray-500">{transactions.length} Transaksi</div>
-          <div className="text-xl font-bold text-success-600">{formatCurrency(todayTotal)}</div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        {/* Total All Categories */}
+        <div className="card stats-card">
+          <div className="stats-card-icon success">
+            <DollarSign size={24} />
+          </div>
+          <div className="stats-card-value">{formatCurrency(todayTotal)}</div>
+          <div className="stats-card-label">Total Semua Kategori ({transactions.length} Transaksi)</div>
+        </div>
+
+        {/* Filtered by Category */}
+        <div className="card">
+          <div className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="stats-card-icon warning">
+                <Tag size={24} />
+              </div>
+              <div className="flex-1">
+                <select
+                  className="form-select"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="all">Semua Kategori</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-warning-600">{formatCurrency(filteredTotal)}</div>
+            <div className="text-sm text-gray-500">
+              {selectedCategory === 'all' 
+                ? `${transactions.length} Transaksi` 
+                : `${filteredItemCount} Item dari ${filteredTransactionCount} Transaksi`
+              }
+            </div>
+          </div>
         </div>
       </div>
 

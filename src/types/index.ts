@@ -97,6 +97,8 @@ export interface Transaction {
 export interface TransactionItem {
   productId: string;
   productName: string;
+  categoryId?: string;
+  categoryName?: string;
   quantity: number;
   price: number;
   buyPrice: number;
