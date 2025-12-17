@@ -124,3 +124,11 @@ export function useUpdateBrilinkTransaction() {
     },
   });
 }
+
+export function useSavedBrilinkAccounts() {
+  return useQuery({
+    queryKey: [QUERY_KEY, 'savedAccounts'],
+    queryFn: () => brilinkService.getSavedAccounts(),
+  });
+}
+

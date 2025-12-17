@@ -109,11 +109,16 @@ export type BRILinkTransactionType =
   | 'cash_deposit'
   | 'cash_withdrawal'
   | 'payment'
-  | 'topup';
+  | 'topup'
+  | 'griya_bayar'
+  | 'propana';
+
+export type BRILinkProfitCategory = 'brilink' | 'griya_bayar' | 'propana';
 
 export interface BRILinkTransaction {
   id: string;
   transactionType: BRILinkTransactionType;
+  profitCategory: BRILinkProfitCategory;
   description: string; // legacy - for backward compatibility
   accountName?: string;
   accountNumber?: string;
@@ -158,6 +163,7 @@ export interface ProductFormData {
 
 export interface BRILinkFormData {
   transactionType: BRILinkTransactionType;
+  profitCategory: BRILinkProfitCategory;
   accountName: string;
   accountNumber: string;
   amount: number;
@@ -165,6 +171,14 @@ export interface BRILinkFormData {
   profit: number;
   customerName?: string;
   customerPhone?: string;
+  saveAccount?: boolean;
+}
+
+export interface SavedBRILinkAccount {
+  id: string;
+  accountName: string;
+  accountNumber: string;
+  createdAt: Date;
 }
 
 export interface RoleFormData {

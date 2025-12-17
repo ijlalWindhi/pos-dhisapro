@@ -1,50 +1,68 @@
-import { useState } from 'react';
-import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
-import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction, useUpdateBrilinkTransaction } from './hooks/useBrilink';
+import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
-import type { BRILinkTransactionType, BRILinkFormData, BRILinkTransaction } from '@/types';
+import type { BRILinkTransactionType, BRILinkFormData, BRILinkTransaction, BRILinkProfitCategory } from '@/types';
 
-const transactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet }[] = [
-  { value: 'transfer', label: 'Transfer', icon: ArrowRightLeft },
-  { value: 'cash_deposit', label: 'Setor Tunai', icon: ArrowDownToLine },
-  { value: 'cash_withdrawal', label: 'Tarik Tunai', icon: ArrowUpFromLine },
-  { value: 'payment', label: 'Pembayaran', icon: CreditCard },
-  { value: 'topup', label: 'Top Up', icon: Smartphone },
+const transactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet; profitCategory: BRILinkProfitCategory }[] = [
+  { value: 'transfer', label: 'Transfer', icon: ArrowRightLeft, profitCategory: 'brilink' },
+  { value: 'cash_deposit', label: 'Setor Tunai', icon: ArrowDownToLine, profitCategory: 'brilink' },
+  { value: 'cash_withdrawal', label: 'Tarik Tunai', icon: ArrowUpFromLine, profitCategory: 'brilink' },
+  { value: 'payment', label: 'Pembayaran', icon: CreditCard, profitCategory: 'brilink' },
+  { value: 'topup', label: 'Top Up', icon: Smartphone, profitCategory: 'brilink' },
+  { value: 'griya_bayar', label: 'Griya Bayar', icon: Home, profitCategory: 'griya_bayar' },
+  { value: 'propana', label: 'Propana', icon: Flame, profitCategory: 'propana' },
 ];
 
+const profitCategoryLabels: Record<BRILinkProfitCategory, string> = {
+  brilink: 'BRILink',
+  griya_bayar: 'Griya Bayar',
+  propana: 'Propana',
+};
 
 const emptyFormData: BRILinkFormData = {
   transactionType: 'transfer',
+  profitCategory: 'brilink',
   accountName: '',
   accountNumber: '',
   amount: 0,
   adminFee: 0,
   profit: 0,
   customerName: '',
+  saveAccount: false,
 };
 
 export function BrilinkPage() {
   const { user } = useAuth();
   const { data: transactions = [], isLoading } = useTodayBrilinkTransactions();
   const { data: summary } = useTodayBrilinkSummary();
+  const { data: savedAccounts = [] } = useSavedBrilinkAccounts();
   const createTransaction = useCreateBrilinkTransaction();
   const updateTransaction = useUpdateBrilinkTransaction();
   
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<BRILinkTransaction | null>(null);
   const [formData, setFormData] = useState<BRILinkFormData>(emptyFormData);
+  const [selectedSavedAccount, setSelectedSavedAccount] = useState('');
 
   const resetForm = () => {
     setFormData(emptyFormData);
     setShowForm(false);
     setEditingTransaction(null);
+    setSelectedSavedAccount('');
   };
 
   const openForm = (type?: BRILinkTransactionType) => {
     setEditingTransaction(null);
-    setFormData({ ...emptyFormData, transactionType: type || 'transfer' });
+    const typeInfo = transactionTypes.find(t => t.value === (type || 'transfer'));
+    setFormData({ 
+      ...emptyFormData, 
+      transactionType: type || 'transfer',
+      profitCategory: typeInfo?.profitCategory || 'brilink',
+    });
+    setSelectedSavedAccount('');
     setShowForm(true);
   };
 
@@ -52,14 +70,40 @@ export function BrilinkPage() {
     setEditingTransaction(tx);
     setFormData({
       transactionType: tx.transactionType,
+      profitCategory: tx.profitCategory || 'brilink',
       accountName: tx.accountName || tx.description?.split(' - ')[0] || '',
       accountNumber: tx.accountNumber || tx.description?.split(' - ')[1] || '',
       amount: tx.amount,
       adminFee: tx.adminFee,
       profit: tx.profit,
       customerName: tx.customerName || '',
+      saveAccount: false,
     });
+    setSelectedSavedAccount('');
     setShowForm(true);
+  };
+
+  // Update profitCategory when transactionType changes
+  useEffect(() => {
+    const typeInfo = transactionTypes.find(t => t.value === formData.transactionType);
+    if (typeInfo && formData.profitCategory !== typeInfo.profitCategory) {
+      setFormData(prev => ({ ...prev, profitCategory: typeInfo.profitCategory }));
+    }
+  }, [formData.transactionType, formData.profitCategory]);
+
+  // Handle saved account selection
+  const handleSavedAccountChange = (accountNumber: string) => {
+    setSelectedSavedAccount(accountNumber);
+    if (accountNumber) {
+      const account = savedAccounts.find(a => a.accountNumber === accountNumber);
+      if (account) {
+        setFormData(prev => ({
+          ...prev,
+          accountName: account.accountName,
+          accountNumber: account.accountNumber,
+        }));
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,16 +131,19 @@ export function BrilinkPage() {
     }
   };
 
-  const todayProfit = summary?.totalProfit || 0;
+  const brilinkProfit = summary?.brilinkProfit || 0;
+  const griyaBayarProfit = summary?.griyaBayarProfit || 0;
+  const propanaProfit = summary?.propanaProfit || 0;
   const todayCount = summary?.totalTransactions || 0;
   const isSubmitting = createTransaction.isPending || updateTransaction.isPending;
+  const isPropana = formData.transactionType === 'propana';
 
   return (
     <MainLayout title="BRILink">
       <div className="page-header">
         <div>
           <h2 className="page-title">Transaksi BRILink</h2>
-          <p className="page-subtitle">Catat transaksi BRILink Anda</p>
+          <p className="page-subtitle">Catat transaksi BRILink, Griya Bayar & Propana</p>
         </div>
         <button className="btn btn-primary" onClick={() => openForm()}>
           <Plus size={18} />
@@ -105,13 +152,27 @@ export function BrilinkPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div className="card stats-card">
           <div className="stats-card-icon warning">
             <Wallet size={24} />
           </div>
-          <div className="stats-card-value">{formatCurrency(todayProfit)}</div>
-          <div className="stats-card-label">Profit Hari Ini</div>
+          <div className="stats-card-value">{formatCurrency(brilinkProfit)}</div>
+          <div className="stats-card-label">Profit BRILink</div>
+        </div>
+        <div className="card stats-card">
+          <div className="stats-card-icon success">
+            <Home size={24} />
+          </div>
+          <div className="stats-card-value">{formatCurrency(griyaBayarProfit)}</div>
+          <div className="stats-card-label">Profit Griya Bayar</div>
+        </div>
+        <div className="card stats-card">
+          <div className="stats-card-icon danger">
+            <Flame size={24} />
+          </div>
+          <div className="stats-card-value">{formatCurrency(propanaProfit)}</div>
+          <div className="stats-card-label">Profit Propana</div>
         </div>
         <div className="card stats-card">
           <div className="stats-card-icon primary">
@@ -128,15 +189,15 @@ export function BrilinkPage() {
           <h3 className="card-title">Tambah Cepat</h3>
         </div>
         <div className="card-body">
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             {transactionTypes.map((type) => (
               <button
                 key={type.value}
-                className="btn btn-secondary btn-lg flex-1 min-w-[140px]"
+                className="btn btn-secondary flex-1 min-w-[100px]"
                 onClick={() => openForm(type.value)}
               >
-                <type.icon size={20} />
-                <span className='text-xs md:text-sm'>{type.label}</span>
+                <type.icon size={18} />
+                <span className='text-xs'>{type.label}</span>
               </button>
             ))}
           </div>
@@ -155,9 +216,9 @@ export function BrilinkPage() {
                 <tr>
                   <th>Waktu</th>
                   <th>Tipe</th>
+                  <th>Kategori</th>
                   <th>No Rek / Nama</th>
                   <th className="text-right">Nominal</th>
-                  <th className="text-right">Admin</th>
                   <th className="text-right">Profit</th>
                   <th className="text-center w-20">Aksi</th>
                 </tr>
@@ -177,7 +238,7 @@ export function BrilinkPage() {
                           <Wallet size={28} />
                         </div>
                         <div className="empty-state-title">Belum ada transaksi</div>
-                        <p className="empty-state-description">Klik tombol diatas untuk input transaksi BRILink</p>
+                        <p className="empty-state-description">Klik tombol diatas untuk input transaksi</p>
                       </div>
                     </td>
                   </tr>
@@ -190,9 +251,17 @@ export function BrilinkPage() {
                         <td>
                           <span className="badge badge-warning">{typeInfo?.label || tx.transactionType}</span>
                         </td>
+                        <td>
+                          <span className={`badge ${
+                            tx.profitCategory === 'griya_bayar' ? 'badge-success' :
+                            tx.profitCategory === 'propana' ? 'badge-danger' :
+                            'badge-primary'
+                          }`}>
+                            {profitCategoryLabels[tx.profitCategory] || 'BRILink'}
+                          </span>
+                        </td>
                         <td>{tx.description}</td>
                         <td className="text-right">{formatCurrency(tx.amount)}</td>
-                        <td className="text-right">{formatCurrency(tx.adminFee)}</td>
                         <td className="text-right font-semibold text-success-600">
                           +{formatCurrency(tx.profit)}
                         </td>
@@ -221,7 +290,7 @@ export function BrilinkPage() {
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
-                {editingTransaction ? 'Edit Transaksi BRILink' : 'Input Transaksi BRILink'}
+                {editingTransaction ? 'Edit Transaksi' : 'Input Transaksi'}
               </h3>
               <button className="modal-close" onClick={resetForm}>
                 <X size={18} />
@@ -241,77 +310,171 @@ export function BrilinkPage() {
                     ))}
                   </select>
                 </div>
-                <div className="grid grid-2">
+
+                {/* Saved Accounts (only for non-Propana) */}
+                {!isPropana && savedAccounts.length > 0 && !editingTransaction && (
                   <div className="form-group">
-                    <label className="form-label form-label-required">No Rekening</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Contoh: 1234567890"
-                      value={formData.accountNumber}
-                      onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                      required
-                    />
+                    <label className="form-label">Pilih Rekening Tersimpan</label>
+                    <select
+                      className="form-select"
+                      value={selectedSavedAccount}
+                      onChange={(e) => handleSavedAccountChange(e.target.value)}
+                    >
+                      <option value="">-- Pilih atau input manual --</option>
+                      {savedAccounts.map((acc) => (
+                        <option key={acc.id} value={acc.accountNumber}>
+                          {acc.accountName} - {acc.accountNumber}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Nama Rekening</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Contoh: John Doe"
-                      value={formData.accountName}
-                      onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-3">
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Nominal</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="0"
-                      inputMode="numeric"
-                      value={formatNumber(formData.amount)}
-                      onChange={(e) => setFormData({ ...formData, amount: parseNumber(e.target.value) })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Biaya Admin</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="0"
-                      inputMode="numeric"
-                      value={formatNumber(formData.adminFee)}
-                      onChange={(e) => setFormData({ ...formData, adminFee: parseNumber(e.target.value) })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label form-label-required">Profit</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="0"
-                      inputMode="numeric"
-                      value={formatNumber(formData.profit)}
-                      onChange={(e) => setFormData({ ...formData, profit: parseNumber(e.target.value) })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Nama Pelanggan (Opsional)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Nama pelanggan"
-                    value={formData.customerName || ''}
-                    onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                  />
-                </div>
+                )}
+
+                {/* Propana Fields */}
+                {isPropana ? (
+                  <>
+                    <div className="grid grid-2">
+                      <div className="form-group">
+                        <label className="form-label form-label-required">No. Telepon</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="08xxxxxxxxxx"
+                          value={formData.accountNumber}
+                          onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Nama Pelanggan (Opsional)</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Nama pelanggan"
+                          value={formData.customerName || ''}
+                          onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-2">
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Nominal</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="0"
+                          inputMode="numeric"
+                          value={formatNumber(formData.amount)}
+                          onChange={(e) => setFormData({ ...formData, amount: parseNumber(e.target.value) })}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Profit</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="0"
+                          inputMode="numeric"
+                          value={formatNumber(formData.profit)}
+                          onChange={(e) => setFormData({ ...formData, profit: parseNumber(e.target.value) })}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Standard BRILink / Griya Bayar Fields */}
+                    <div className="grid grid-2">
+                      <div className="form-group">
+                        <label className="form-label form-label-required">No Rekening</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Contoh: 1234567890"
+                          value={formData.accountNumber}
+                          onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Nama Rekening</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Contoh: John Doe"
+                          value={formData.accountName}
+                          onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-3">
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Nominal</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="0"
+                          inputMode="numeric"
+                          value={formatNumber(formData.amount)}
+                          onChange={(e) => setFormData({ ...formData, amount: parseNumber(e.target.value) })}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Biaya Admin</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="0"
+                          inputMode="numeric"
+                          value={formatNumber(formData.adminFee)}
+                          onChange={(e) => setFormData({ ...formData, adminFee: parseNumber(e.target.value) })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label form-label-required">Profit</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="0"
+                          inputMode="numeric"
+                          value={formatNumber(formData.profit)}
+                          onChange={(e) => setFormData({ ...formData, profit: parseNumber(e.target.value) })}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Save Account Option */}
+                    {!editingTransaction && (
+                      <div className="form-group">
+                        <label className="form-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={formData.saveAccount || false}
+                            onChange={(e) => setFormData({ ...formData, saveAccount: e.target.checked })}
+                          />
+                          <Save size={16} className="mr-1" />
+                          <span>Simpan no rekening untuk transaksi berikutnya</span>
+                        </label>
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label className="form-label">Nama Pelanggan (Opsional)</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Nama pelanggan"
+                        value={formData.customerName || ''}
+                        onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={resetForm}>
