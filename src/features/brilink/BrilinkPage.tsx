@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search } from 'lucide-react';
 import { MainLayout } from '@/components/layout';
 import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
-import type { BRILinkTransactionType, BRILinkFormData, BRILinkTransaction, BRILinkProfitCategory } from '@/types';
+import type { BRILinkTransactionType, BRILinkFormData, BRILinkTransaction, BRILinkProfitCategory, SavedBRILinkAccount } from '@/types';
 
 const transactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet; profitCategory: BRILinkProfitCategory }[] = [
   { value: 'transfer', label: 'Transfer', icon: ArrowRightLeft, profitCategory: 'brilink' },
@@ -21,6 +21,187 @@ const profitCategoryLabels: Record<BRILinkProfitCategory, string> = {
   griya_bayar: 'Griya Bayar',
   propana: 'Propana',
 };
+
+// Searchable Account Select Component
+function SearchableAccountSelect({
+  savedAccounts,
+  selectedAccount,
+  onSelect,
+}: {
+  savedAccounts: SavedBRILinkAccount[];
+  selectedAccount: string;
+  onSelect: (accountNumber: string) => void;
+}) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Filter accounts based on search term
+  const filteredAccounts = savedAccounts.filter(
+    (acc) =>
+      acc.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      acc.accountNumber.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Get selected account display name
+  const selectedAccountData = savedAccounts.find((acc) => acc.accountNumber === selectedAccount);
+  const displayValue = selectedAccountData
+    ? `${selectedAccountData.accountName} - ${selectedAccountData.accountNumber}`
+    : '';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (accountNumber: string) => {
+    onSelect(accountNumber);
+    setSearchTerm('');
+    setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    onSelect('');
+    setSearchTerm('');
+  };
+
+  return (
+    <div className="form-group" ref={containerRef}>
+      <label className="form-label">Pilih Rekening Tersimpan</label>
+      <div style={{ position: 'relative' }}>
+        {/* Selected value or search input */}
+        {selectedAccount && !isOpen ? (
+          <div
+            className="form-input"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              backgroundColor: 'var(--color-gray-50)',
+            }}
+            onClick={() => setIsOpen(true)}
+          >
+            <span>{displayValue}</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClear();
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            <Search
+              size={18}
+              style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--color-gray-400)',
+              }}
+            />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Cari nama atau nomor rekening..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => setIsOpen(true)}
+              style={{ paddingLeft: '40px' }}
+            />
+          </div>
+        )}
+
+        {/* Dropdown list */}
+        {isOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              backgroundColor: 'var(--color-white)',
+              border: '1px solid var(--color-gray-200)',
+              borderRadius: 'var(--radius-md)',
+              marginTop: '4px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              zIndex: 50,
+              boxShadow: 'var(--shadow-md)',
+            }}
+          >
+            {/* Manual input option */}
+            <div
+              style={{
+                padding: '10px 12px',
+                cursor: 'pointer',
+                borderBottom: '1px solid var(--color-gray-100)',
+                color: 'var(--color-gray-500)',
+                fontSize: '14px',
+              }}
+              onClick={() => handleSelect('')}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-gray-50)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              -- Input manual --
+            </div>
+
+            {filteredAccounts.length === 0 ? (
+              <div
+                style={{
+                  padding: '12px',
+                  textAlign: 'center',
+                  color: 'var(--color-gray-400)',
+                  fontSize: '14px',
+                }}
+              >
+                Tidak ada hasil
+              </div>
+            ) : (
+              filteredAccounts.map((acc) => (
+                <div
+                  key={acc.id}
+                  style={{
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid var(--color-gray-50)',
+                  }}
+                  onClick={() => handleSelect(acc.accountNumber)}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-gray-50)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <div style={{ fontWeight: 500 }}>{acc.accountName}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-gray-500)' }}>
+                    {acc.accountNumber}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const emptyFormData: BRILinkFormData = {
   transactionType: 'transfer',
@@ -137,6 +318,7 @@ export function BrilinkPage() {
   const todayCount = summary?.totalTransactions || 0;
   const isSubmitting = createTransaction.isPending || updateTransaction.isPending;
   const isPropana = formData.transactionType === 'propana';
+  const isGriyaBayar = formData.transactionType === 'griya_bayar';
 
   return (
     <MainLayout title="BRILink">
@@ -313,21 +495,11 @@ export function BrilinkPage() {
 
                 {/* Saved Accounts (only for non-Propana) */}
                 {!isPropana && savedAccounts.length > 0 && !editingTransaction && (
-                  <div className="form-group">
-                    <label className="form-label">Pilih Rekening Tersimpan</label>
-                    <select
-                      className="form-select"
-                      value={selectedSavedAccount}
-                      onChange={(e) => handleSavedAccountChange(e.target.value)}
-                    >
-                      <option value="">-- Pilih atau input manual --</option>
-                      {savedAccounts.map((acc) => (
-                        <option key={acc.id} value={acc.accountNumber}>
-                          {acc.accountName} - {acc.accountNumber}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <SearchableAccountSelect
+                    savedAccounts={savedAccounts}
+                    selectedAccount={selectedSavedAccount}
+                    onSelect={handleSavedAccountChange}
+                  />
                 )}
 
                 {/* Propana Fields */}
@@ -424,7 +596,7 @@ export function BrilinkPage() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Biaya Admin</label>
+                        <label className="form-label">Biaya Admin (Opsional)</label>
                         <input
                           type="text"
                           className="form-input"
@@ -435,7 +607,9 @@ export function BrilinkPage() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label form-label-required">Profit</label>
+                        <label className={`form-label ${!isGriyaBayar ? 'form-label-required' : ''}`}>
+                          Profit {isGriyaBayar && '(Opsional)'}
+                        </label>
                         <input
                           type="text"
                           className="form-input"
@@ -443,7 +617,7 @@ export function BrilinkPage() {
                           inputMode="numeric"
                           value={formatNumber(formData.profit)}
                           onChange={(e) => setFormData({ ...formData, profit: parseNumber(e.target.value) })}
-                          required
+                          required={!isGriyaBayar}
                         />
                       </div>
                     </div>
