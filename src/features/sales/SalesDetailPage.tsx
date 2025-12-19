@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { ArrowLeft, ShoppingCart, Edit2, Trash2, X, Plus, Minus, DollarSign, Tag } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
+import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
+import { DataTable } from '@/components/DataTable';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useTodayTransactions, useUpdateTransactionWithItems, useDeleteTransaction } from './hooks/useTransactions';
 import { useCategories } from '@/features/settings/hooks/useCategories';
@@ -176,6 +178,95 @@ export function SalesDetailPage() {
 
   const todayTotal = transactions.reduce((sum, tx) => sum + tx.total, 0);
 
+  // Define columns for DataTable
+  const columns = useMemo<ColumnDef<Transaction>[]>(() => [
+    {
+      accessorKey: 'createdAt',
+      header: 'Waktu',
+      cell: ({ getValue }) => (
+        <span className="whitespace-nowrap">
+          {(getValue() as Date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      ),
+    },
+    {
+      id: 'items',
+      header: 'Items',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="max-w-xs">
+          {row.original.items.map((item, i) => (
+            <span key={i} className="text-sm">
+              {item.productName} x{item.quantity}
+              {i < row.original.items.length - 1 && ', '}
+            </span>
+          ))}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'paymentMethod',
+      header: 'Metode Bayar',
+      cell: ({ getValue }) => {
+        const method = getValue() as string;
+        return (
+          <span className={`badge ${
+            method === 'cash' ? 'badge-success' :
+            method === 'transfer' ? 'badge-primary' :
+            'badge-warning'
+          }`}>
+            {method === 'cash' ? 'Tunai' :
+             method === 'transfer' ? 'Transfer' : 'QRIS'}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'total',
+      header: 'Total',
+      cell: ({ getValue }) => (
+        <span className="text-right block font-semibold">{formatCurrency(getValue() as number)}</span>
+      ),
+    },
+    {
+      accessorKey: 'amountPaid',
+      header: 'Bayar',
+      cell: ({ getValue }) => (
+        <span className="text-right block">{formatCurrency(getValue() as number)}</span>
+      ),
+    },
+    {
+      accessorKey: 'change',
+      header: 'Kembalian',
+      cell: ({ getValue }) => (
+        <span className="text-right block text-success-600">{formatCurrency(getValue() as number)}</span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Aksi',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center gap-1">
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            title="Edit"
+            onClick={() => openEditForm(row.original)}
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            className="btn btn-ghost btn-icon btn-sm text-danger-500"
+            title="Hapus"
+            onClick={() => setDeleteConfirm(row.original)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ], []);
+
   return (
     <MainLayout title="Detail Transaksi">
       <div className="page-header">
@@ -241,93 +332,13 @@ export function SalesDetailPage() {
 
       {/* Transaction List */}
       <div className="card">
-        <div className="p-0">
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Waktu</th>
-                  <th>Items</th>
-                  <th>Metode Bayar</th>
-                  <th className="text-right">Total</th>
-                  <th className="text-right">Bayar</th>
-                  <th className="text-right">Kembalian</th>
-                  <th className="text-center w-24">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8">
-                      <div className="spinner mx-auto"></div>
-                    </td>
-                  </tr>
-                ) : transactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="empty-state">
-                        <div className="empty-state-icon">
-                          <ShoppingCart size={28} />
-                        </div>
-                        <div className="empty-state-title">Belum ada transaksi hari ini</div>
-                        <p className="empty-state-description">Transaksi yang dibuat hari ini akan muncul di sini</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  transactions.map((tx) => (
-                    <tr key={tx.id}>
-                      <td className="whitespace-nowrap">
-                        {tx.createdAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td>
-                        <div className="max-w-xs">
-                          {tx.items.map((item, i) => (
-                            <span key={i} className="text-sm">
-                              {item.productName} x{item.quantity}
-                              {i < tx.items.length - 1 && ', '}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`badge ${
-                          tx.paymentMethod === 'cash' ? 'badge-success' :
-                          tx.paymentMethod === 'transfer' ? 'badge-primary' :
-                          'badge-warning'
-                        }`}>
-                          {tx.paymentMethod === 'cash' ? 'Tunai' :
-                           tx.paymentMethod === 'transfer' ? 'Transfer' : 'QRIS'}
-                        </span>
-                      </td>
-                      <td className="text-right font-semibold">{formatCurrency(tx.total)}</td>
-                      <td className="text-right">{formatCurrency(tx.amountPaid)}</td>
-                      <td className="text-right text-success-600">{formatCurrency(tx.change)}</td>
-                      <td className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            className="btn btn-ghost btn-icon btn-sm"
-                            title="Edit"
-                            onClick={() => openEditForm(tx)}
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            className="btn btn-ghost btn-icon btn-sm text-danger-500"
-                            title="Hapus"
-                            onClick={() => setDeleteConfirm(tx)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          data={transactions}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="Belum ada transaksi hari ini"
+          emptyIcon={<ShoppingCart size={28} />}
+        />
       </div>
 
       {/* Edit Modal */}

@@ -16,13 +16,14 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as CategoriesRouteImport } from './routes/categories'
-import { Route as BrilinkRouteImport } from './routes/brilink'
 import { Route as AuditLogsRouteImport } from './routes/audit-logs'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SalesIndexRouteImport } from './routes/sales/index'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
+import { Route as BrilinkIndexRouteImport } from './routes/brilink/index'
 import { Route as SalesTodayRouteImport } from './routes/sales/today'
 import { Route as ReportsDateRouteImport } from './routes/reports/$date'
+import { Route as BrilinkHistoryRouteImport } from './routes/brilink/history'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -59,11 +60,6 @@ const CategoriesRoute = CategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BrilinkRoute = BrilinkRouteImport.update({
-  id: '/brilink',
-  path: '/brilink',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuditLogsRoute = AuditLogsRouteImport.update({
   id: '/audit-logs',
   path: '/audit-logs',
@@ -84,6 +80,11 @@ const ReportsIndexRoute = ReportsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ReportsRoute,
 } as any)
+const BrilinkIndexRoute = BrilinkIndexRouteImport.update({
+  id: '/brilink/',
+  path: '/brilink/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalesTodayRoute = SalesTodayRouteImport.update({
   id: '/today',
   path: '/today',
@@ -94,11 +95,15 @@ const ReportsDateRoute = ReportsDateRouteImport.update({
   path: '/$date',
   getParentRoute: () => ReportsRoute,
 } as any)
+const BrilinkHistoryRoute = BrilinkHistoryRouteImport.update({
+  id: '/brilink/history',
+  path: '/brilink/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
-  '/brilink': typeof BrilinkRoute
   '/categories': typeof CategoriesRoute
   '/products': typeof ProductsRoute
   '/profile': typeof ProfileRoute
@@ -106,22 +111,25 @@ export interface FileRoutesByFullPath {
   '/roles': typeof RolesRoute
   '/sales': typeof SalesRouteWithChildren
   '/users': typeof UsersRoute
+  '/brilink/history': typeof BrilinkHistoryRoute
   '/reports/$date': typeof ReportsDateRoute
   '/sales/today': typeof SalesTodayRoute
+  '/brilink': typeof BrilinkIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/sales/': typeof SalesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
-  '/brilink': typeof BrilinkRoute
   '/categories': typeof CategoriesRoute
   '/products': typeof ProductsRoute
   '/profile': typeof ProfileRoute
   '/roles': typeof RolesRoute
   '/users': typeof UsersRoute
+  '/brilink/history': typeof BrilinkHistoryRoute
   '/reports/$date': typeof ReportsDateRoute
   '/sales/today': typeof SalesTodayRoute
+  '/brilink': typeof BrilinkIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/sales': typeof SalesIndexRoute
 }
@@ -129,7 +137,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audit-logs': typeof AuditLogsRoute
-  '/brilink': typeof BrilinkRoute
   '/categories': typeof CategoriesRoute
   '/products': typeof ProductsRoute
   '/profile': typeof ProfileRoute
@@ -137,8 +144,10 @@ export interface FileRoutesById {
   '/roles': typeof RolesRoute
   '/sales': typeof SalesRouteWithChildren
   '/users': typeof UsersRoute
+  '/brilink/history': typeof BrilinkHistoryRoute
   '/reports/$date': typeof ReportsDateRoute
   '/sales/today': typeof SalesTodayRoute
+  '/brilink/': typeof BrilinkIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/sales/': typeof SalesIndexRoute
 }
@@ -147,7 +156,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audit-logs'
-    | '/brilink'
     | '/categories'
     | '/products'
     | '/profile'
@@ -155,29 +163,31 @@ export interface FileRouteTypes {
     | '/roles'
     | '/sales'
     | '/users'
+    | '/brilink/history'
     | '/reports/$date'
     | '/sales/today'
+    | '/brilink'
     | '/reports/'
     | '/sales/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/audit-logs'
-    | '/brilink'
     | '/categories'
     | '/products'
     | '/profile'
     | '/roles'
     | '/users'
+    | '/brilink/history'
     | '/reports/$date'
     | '/sales/today'
+    | '/brilink'
     | '/reports'
     | '/sales'
   id:
     | '__root__'
     | '/'
     | '/audit-logs'
-    | '/brilink'
     | '/categories'
     | '/products'
     | '/profile'
@@ -185,8 +195,10 @@ export interface FileRouteTypes {
     | '/roles'
     | '/sales'
     | '/users'
+    | '/brilink/history'
     | '/reports/$date'
     | '/sales/today'
+    | '/brilink/'
     | '/reports/'
     | '/sales/'
   fileRoutesById: FileRoutesById
@@ -194,7 +206,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditLogsRoute: typeof AuditLogsRoute
-  BrilinkRoute: typeof BrilinkRoute
   CategoriesRoute: typeof CategoriesRoute
   ProductsRoute: typeof ProductsRoute
   ProfileRoute: typeof ProfileRoute
@@ -202,6 +213,8 @@ export interface RootRouteChildren {
   RolesRoute: typeof RolesRoute
   SalesRoute: typeof SalesRouteWithChildren
   UsersRoute: typeof UsersRoute
+  BrilinkHistoryRoute: typeof BrilinkHistoryRoute
+  BrilinkIndexRoute: typeof BrilinkIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -255,13 +268,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/brilink': {
-      id: '/brilink'
-      path: '/brilink'
-      fullPath: '/brilink'
-      preLoaderRoute: typeof BrilinkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/audit-logs': {
       id: '/audit-logs'
       path: '/audit-logs'
@@ -290,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsIndexRouteImport
       parentRoute: typeof ReportsRoute
     }
+    '/brilink/': {
+      id: '/brilink/'
+      path: '/brilink'
+      fullPath: '/brilink'
+      preLoaderRoute: typeof BrilinkIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sales/today': {
       id: '/sales/today'
       path: '/today'
@@ -303,6 +316,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reports/$date'
       preLoaderRoute: typeof ReportsDateRouteImport
       parentRoute: typeof ReportsRoute
+    }
+    '/brilink/history': {
+      id: '/brilink/history'
+      path: '/brilink/history'
+      fullPath: '/brilink/history'
+      preLoaderRoute: typeof BrilinkHistoryRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -335,7 +355,6 @@ const SalesRouteWithChildren = SalesRoute._addFileChildren(SalesRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditLogsRoute: AuditLogsRoute,
-  BrilinkRoute: BrilinkRoute,
   CategoriesRoute: CategoriesRoute,
   ProductsRoute: ProductsRoute,
   ProfileRoute: ProfileRoute,
@@ -343,6 +362,8 @@ const rootRouteChildren: RootRouteChildren = {
   RolesRoute: RolesRoute,
   SalesRoute: SalesRouteWithChildren,
   UsersRoute: UsersRoute,
+  BrilinkHistoryRoute: BrilinkHistoryRoute,
+  BrilinkIndexRoute: BrilinkIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

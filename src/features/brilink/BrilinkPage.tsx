@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search } from 'lucide-react';
+import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search, ClipboardList } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { MainLayout } from '@/components/layout';
 import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -327,10 +328,16 @@ export function BrilinkPage() {
           <h2 className="page-title">Transaksi BRILink</h2>
           <p className="page-subtitle">Catat transaksi BRILink, Griya Bayar & Propana</p>
         </div>
-        <button className="btn btn-primary" onClick={() => openForm()}>
-          <Plus size={18} />
-          <span>Input Transaksi</span>
-        </button>
+        <div className="flex gap-2">
+          <Link to="/brilink/history" className="btn btn-secondary">
+            <ClipboardList size={18} />
+            <span>Riwayat</span>
+          </Link>
+          <button className="btn btn-primary" onClick={() => openForm()}>
+            <Plus size={18} />
+            <span>Input Transaksi</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}

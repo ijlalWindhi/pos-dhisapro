@@ -154,6 +154,23 @@ export const brilinkService = {
     });
   },
 
+  // Search transactions by text (name, account number, phone) - ignores date
+  async search(searchTerm: string): Promise<BRILinkTransaction[]> {
+    if (!searchTerm.trim()) return [];
+    
+    // Firestore doesn't support full-text search, so we fetch all and filter
+    const allTransactions = await this.getAll();
+    const term = searchTerm.toLowerCase().trim();
+    
+    return allTransactions.filter(tx => 
+      tx.accountName?.toLowerCase().includes(term) ||
+      tx.accountNumber?.toLowerCase().includes(term) ||
+      tx.customerName?.toLowerCase().includes(term) ||
+      tx.customerPhone?.toLowerCase().includes(term) ||
+      tx.description?.toLowerCase().includes(term)
+    );
+  },
+
   // === Saved Accounts ===
   async getSavedAccounts(): Promise<SavedBRILinkAccount[]> {
     const q = query(collection(db, SAVED_ACCOUNTS_COLLECTION), orderBy('accountName', 'asc'));

@@ -41,6 +41,14 @@ export function useTodayBrilinkSummary() {
   });
 }
 
+export function useBrilinkSearch(searchTerm: string) {
+  return useQuery({
+    queryKey: [QUERY_KEY, 'search', searchTerm],
+    queryFn: () => brilinkService.search(searchTerm),
+    enabled: !!searchTerm.trim(),
+  });
+}
+
 export function useCreateBrilinkTransaction() {
   const queryClient = useQueryClient();
 
