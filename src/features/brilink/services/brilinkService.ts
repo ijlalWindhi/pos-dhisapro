@@ -16,6 +16,20 @@ import type { BRILinkTransaction, BRILinkFormData, SavedBRILinkAccount } from '@
 const COLLECTION = 'brilink_transactions';
 const SAVED_ACCOUNTS_COLLECTION = 'brilink_saved_accounts';
 
+// Helper function to get start of day in local timezone
+function getStartOfDay(date: Date = new Date()): Date {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  return startOfDay;
+}
+
+// Helper function to get end of day in local timezone (23:59:59.999)
+function getEndOfDay(date: Date = new Date()): Date {
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+  return endOfDay;
+}
+
 export const brilinkService = {
   // Get all transactions
   async getAll(): Promise<BRILinkTransaction[]> {
@@ -48,11 +62,9 @@ export const brilinkService = {
 
   // Get today's transactions
   async getToday(): Promise<BRILinkTransaction[]> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return this.getByDateRange(today, tomorrow);
+    const startOfDay = getStartOfDay();
+    const endOfDay = getEndOfDay();
+    return this.getByDateRange(startOfDay, endOfDay);
   },
 
   // Create transaction
@@ -118,11 +130,9 @@ export const brilinkService = {
     griyaBayarProfit: number;
     propanaProfit: number;
   }> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return this.getSummary(today, tomorrow);
+    const startOfDay = getStartOfDay();
+    const endOfDay = getEndOfDay();
+    return this.getSummary(startOfDay, endOfDay);
   },
 
   // Update transaction
