@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search, ClipboardList } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
+import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
+import { DataTable } from '@/components/DataTable';
 import { useTodayBrilinkTransactions, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
@@ -367,6 +369,76 @@ export function BrilinkPage() {
   const isPropana = formData.transactionType === 'propana';
   const isGriyaBayar = formData.transactionType === 'griya_bayar';
 
+  // Define columns for DataTable
+  const columns = useMemo<ColumnDef<BRILinkTransaction>[]>(() => [
+    {
+      accessorKey: 'createdAt',
+      header: 'Waktu',
+      cell: ({ row }) => row.original.createdAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    },
+    {
+      accessorKey: 'transactionType',
+      header: 'Tipe',
+      cell: ({ row }) => {
+        const typeInfo = transactionTypes.find((t) => t.value === row.original.transactionType);
+        return (
+          <span className="badge badge-warning">{typeInfo?.label || row.original.transactionType}</span>
+        );
+      },
+    },
+    {
+      accessorKey: 'profitCategory',
+      header: 'Kategori',
+      cell: ({ row }) => {
+        const category = row.original.profitCategory;
+        return (
+          <span className={`badge ${
+            category === 'griya_bayar' ? 'badge-success' :
+            category === 'propana' ? 'badge-danger' :
+            'badge-primary'
+          }`}>
+            {profitCategoryLabels[category] || 'BRILink'}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'description',
+      header: 'No Rek / Nama',
+    },
+    {
+      accessorKey: 'amount',
+      header: 'Nominal',
+      cell: ({ row }) => (
+        <span className="text-right block">{formatCurrency(row.original.amount)}</span>
+      ),
+    },
+    {
+      accessorKey: 'profit',
+      header: 'Profit',
+      cell: ({ row }) => (
+        <span className="text-right block font-semibold text-success-600">
+          +{formatCurrency(row.original.profit)}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Aksi',
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            title="Edit"
+            onClick={() => openEditForm(row.original)}
+          >
+            <Edit2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ], [openEditForm]);
+
   return (
     <MainLayout title="BRILink">
       <div className="page-header">
@@ -447,79 +519,13 @@ export function BrilinkPage() {
         <div className="card-header">
           <h3 className="card-title">Riwayat Transaksi Hari Ini</h3>
         </div>
-        <div className="p-0">
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Waktu</th>
-                  <th>Tipe</th>
-                  <th>Kategori</th>
-                  <th>No Rek / Nama</th>
-                  <th className="text-right">Nominal</th>
-                  <th className="text-right">Profit</th>
-                  <th className="text-center w-20">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-8">
-                      <div className="spinner mx-auto"></div>
-                    </td>
-                  </tr>
-                ) : transactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="empty-state">
-                        <div className="empty-state-icon">
-                          <Wallet size={28} />
-                        </div>
-                        <div className="empty-state-title">Belum ada transaksi</div>
-                        <p className="empty-state-description">Klik tombol diatas untuk input transaksi</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  transactions.map((tx) => {
-                    const typeInfo = transactionTypes.find((t) => t.value === tx.transactionType);
-                    return (
-                      <tr key={tx.id}>
-                        <td>{tx.createdAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td>
-                          <span className="badge badge-warning">{typeInfo?.label || tx.transactionType}</span>
-                        </td>
-                        <td>
-                          <span className={`badge ${
-                            tx.profitCategory === 'griya_bayar' ? 'badge-success' :
-                            tx.profitCategory === 'propana' ? 'badge-danger' :
-                            'badge-primary'
-                          }`}>
-                            {profitCategoryLabels[tx.profitCategory] || 'BRILink'}
-                          </span>
-                        </td>
-                        <td>{tx.description}</td>
-                        <td className="text-right">{formatCurrency(tx.amount)}</td>
-                        <td className="text-right font-semibold text-success-600">
-                          +{formatCurrency(tx.profit)}
-                        </td>
-                        <td className="text-center">
-                          <button
-                            className="btn btn-ghost btn-icon btn-sm"
-                            title="Edit"
-                            onClick={() => openEditForm(tx)}
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          data={transactions}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="Belum ada transaksi"
+          emptyIcon={<Wallet size={28} />}
+        />
       </div>
 
       {/* Form Modal */}
