@@ -182,21 +182,28 @@ export function SalesDetailPage() {
 
   const { todayTotal, transactionCount: shiftTransactionCount, shiftLabel, shiftTransactions } = shiftSummary;
 
-  // Recalculate filtered totals based on shift transactions
-  const { filteredTotal: shiftFilteredTotal, filteredTransactionCount: shiftFilteredTransactionCount, filteredItemCount: shiftFilteredItemCount } = useMemo(() => {
+  // Recalculate filtered totals and filtered transactions based on shift transactions
+  const { 
+    filteredTotal: shiftFilteredTotal, 
+    filteredTransactionCount: shiftFilteredTransactionCount, 
+    filteredItemCount: shiftFilteredItemCount,
+    filteredTransactions 
+  } = useMemo(() => {
     if (selectedCategory === 'all') {
       return {
         filteredTotal: todayTotal,
         filteredTransactionCount: shiftTransactions.length,
         filteredItemCount: shiftTransactions.reduce((sum, tx) => sum + tx.items.length, 0),
+        filteredTransactions: shiftTransactions,
       };
     }
 
     let total = 0;
     let itemCount = 0;
-    const transactionsWithCategory = new Set<string>();
+    const transactionsWithCategory: Transaction[] = [];
 
     shiftTransactions.forEach(tx => {
+      let hasMatchingItem = false;
       tx.items.forEach(item => {
         // Get categoryId from item or from product mapping
         const categoryId = item.categoryId || productCategoryMap.get(item.productId)?.categoryId;
@@ -204,15 +211,20 @@ export function SalesDetailPage() {
         if (categoryId === selectedCategory) {
           total += item.subtotal;
           itemCount++;
-          transactionsWithCategory.add(tx.id);
+          hasMatchingItem = true;
         }
       });
+      
+      if (hasMatchingItem) {
+        transactionsWithCategory.push(tx);
+      }
     });
 
     return {
       filteredTotal: total,
-      filteredTransactionCount: transactionsWithCategory.size,
+      filteredTransactionCount: transactionsWithCategory.length,
       filteredItemCount: itemCount,
+      filteredTransactions: transactionsWithCategory,
     };
   }, [shiftTransactions, selectedCategory, productCategoryMap, todayTotal]);
 
@@ -374,10 +386,10 @@ export function SalesDetailPage() {
       {/* Transaction List */}
       <div className="card">
         <DataTable
-          data={transactions}
+          data={filteredTransactions}
           columns={columns}
           isLoading={isLoading}
-          emptyMessage="Belum ada transaksi hari ini"
+          emptyMessage={selectedCategory === 'all' ? "Belum ada transaksi hari ini" : "Tidak ada transaksi dengan kategori ini"}
           emptyIcon={<ShoppingCart size={28} />}
         />
       </div>
