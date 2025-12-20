@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Tags } from 'lucide-react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
+import { DataTable } from '@/components/DataTable';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { CategoryFormModal } from './components/CategoryFormModal';
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from './hooks/useCategories';
@@ -18,10 +20,10 @@ export function CategoriesPage() {
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
 
-  const openModal = (category?: Category) => {
+  const openModal = useCallback((category?: Category) => {
     setEditingCategory(category || null);
     setShowModal(true);
-  };
+  }, []);
 
   const closeModal = () => {
     setShowModal(false);
@@ -58,6 +60,57 @@ export function CategoriesPage() {
     setDeleteConfirm(null);
   };
 
+  // Define columns for DataTable
+  const columns = useMemo<ColumnDef<Category>[]>(() => [
+    {
+      accessorKey: 'name',
+      header: 'Nama Kategori',
+      cell: ({ row }) => (
+        <span className="font-semibold">{row.original.name}</span>
+      ),
+    },
+    {
+      accessorKey: 'description',
+      header: 'Deskripsi',
+      cell: ({ row }) => (
+        <span className="text-gray-400">{row.original.description || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'isActive',
+      header: 'Status',
+      cell: ({ row }) => (
+        <div className="text-center">
+          <span className={`badge ${row.original.isActive ? 'badge-success' : 'badge-gray'}`}>
+            {row.original.isActive ? 'Aktif' : 'Nonaktif'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Aksi',
+      cell: ({ row }) => (
+        <div className="table-action justify-center">
+          <button 
+            className="btn btn-ghost btn-icon btn-sm" 
+            title="Edit"
+            onClick={() => openModal(row.original)}
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            className="btn btn-ghost btn-icon btn-sm" 
+            title="Hapus"
+            onClick={() => setDeleteConfirm(row.original.id)}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ], [openModal]);
+
   return (
     <MainLayout title="Kategori">
       <div className="page-header">
@@ -72,71 +125,13 @@ export function CategoriesPage() {
       </div>
 
       <div className="card">
-        <div className="p-0">
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Nama Kategori</th>
-                  <th>Deskripsi</th>
-                  <th className="text-center">Status</th>
-                  <th className="text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-8">
-                      <div className="spinner mx-auto"></div>
-                    </td>
-                  </tr>
-                ) : categories.length === 0 ? (
-                  <tr>
-                    <td colSpan={4}>
-                      <div className="empty-state">
-                        <div className="empty-state-icon">
-                          <Tags size={28} />
-                        </div>
-                        <div className="empty-state-title">Belum ada kategori</div>
-                        <p className="empty-state-description">Tambahkan kategori untuk mengelompokkan produk</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  categories.map((category) => (
-                    <tr key={category.id}>
-                      <td className="font-semibold">{category.name}</td>
-                      <td className="text-gray-400">{category.description || '-'}</td>
-                      <td className="text-center">
-                        <span className={`badge ${category.isActive ? 'badge-success' : 'badge-gray'}`}>
-                          {category.isActive ? 'Aktif' : 'Nonaktif'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="table-action justify-center">
-                          <button 
-                            className="btn btn-ghost btn-icon btn-sm" 
-                            title="Edit"
-                            onClick={() => openModal(category)}
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            className="btn btn-ghost btn-icon btn-sm" 
-                            title="Hapus"
-                            onClick={() => setDeleteConfirm(category.id)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          data={categories}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="Belum ada kategori"
+          emptyIcon={<Tags size={28} />}
+        />
       </div>
 
       {/* Add/Edit Modal */}
