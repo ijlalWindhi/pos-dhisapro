@@ -86,41 +86,6 @@ export function SalesDetailPage() {
     return editItems.reduce((sum, item) => sum + item.subtotal, 0);
   }, [editItems]);
 
-  // Calculate totals based on category filter
-  const { filteredTotal, filteredTransactionCount, filteredItemCount } = useMemo(() => {
-    if (selectedCategory === 'all') {
-      return {
-        filteredTotal: transactions.reduce((sum, tx) => sum + tx.total, 0),
-        filteredTransactionCount: transactions.length,
-        filteredItemCount: transactions.reduce((sum, tx) => sum + tx.items.length, 0),
-      };
-    }
-
-    let total = 0;
-    let itemCount = 0;
-    const transactionsWithCategory = new Set<string>();
-
-    transactions.forEach(tx => {
-      tx.items.forEach(item => {
-        // Get category from item or lookup from products
-        const itemCategoryId = item.categoryId || productCategoryMap.get(item.productId)?.categoryId;
-        
-        // Check if item belongs to selected category
-        if (itemCategoryId === selectedCategory) {
-          total += item.subtotal;
-          itemCount++;
-          transactionsWithCategory.add(tx.id);
-        }
-      });
-    });
-
-    return {
-      filteredTotal: total,
-      filteredTransactionCount: transactionsWithCategory.size,
-      filteredItemCount: itemCount,
-    };
-  }, [transactions, selectedCategory, productCategoryMap]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTransaction) return;
@@ -176,7 +141,80 @@ export function SalesDetailPage() {
     setDeleteConfirm(null);
   };
 
-  const todayTotal = transactions.reduce((sum, tx) => sum + tx.total, 0);
+  // Calculate shift-based summary (Shift 1: 00:00-13:00, Shift 2: 13:01-23:59)
+  const shiftSummary = useMemo(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    // Determine current shift start time
+    // Shift 1: 00:00-13:00 (inclusive of 13:00)
+    // Shift 2: 13:01-23:59
+    const isShift1 = currentHour < 13 || (currentHour === 13 && currentMinute === 0);
+    
+    const shiftStart = new Date(now);
+    const shiftEnd = new Date(now);
+    
+    if (isShift1) {
+      shiftStart.setHours(0, 0, 0, 0);
+      shiftEnd.setHours(13, 0, 59, 999); // End of 13:00
+    } else {
+      shiftStart.setHours(13, 1, 0, 0);
+      shiftEnd.setHours(23, 59, 59, 999); // End of day
+    }
+    
+    // Filter transactions for current shift (within start and end bounds)
+    const shiftTransactions = transactions.filter(tx => {
+      const txTime = tx.createdAt;
+      return txTime >= shiftStart && txTime <= shiftEnd;
+    });
+    
+    // Calculate total for current shift
+    const shiftTotal = shiftTransactions.reduce((sum, tx) => sum + tx.total, 0);
+    
+    return {
+      todayTotal: shiftTotal,
+      transactionCount: shiftTransactions.length,
+      shiftLabel: isShift1 ? 'Shift Pagi (00:00-13:00)' : 'Shift Siang (13:01-23:59)',
+      shiftTransactions,
+    };
+  }, [transactions]);
+
+  const { todayTotal, transactionCount: shiftTransactionCount, shiftLabel, shiftTransactions } = shiftSummary;
+
+  // Recalculate filtered totals based on shift transactions
+  const { filteredTotal: shiftFilteredTotal, filteredTransactionCount: shiftFilteredTransactionCount, filteredItemCount: shiftFilteredItemCount } = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return {
+        filteredTotal: todayTotal,
+        filteredTransactionCount: shiftTransactions.length,
+        filteredItemCount: shiftTransactions.reduce((sum, tx) => sum + tx.items.length, 0),
+      };
+    }
+
+    let total = 0;
+    let itemCount = 0;
+    const transactionsWithCategory = new Set<string>();
+
+    shiftTransactions.forEach(tx => {
+      tx.items.forEach(item => {
+        // Get categoryId from item or from product mapping
+        const categoryId = item.categoryId || productCategoryMap.get(item.productId)?.categoryId;
+        
+        if (categoryId === selectedCategory) {
+          total += item.subtotal;
+          itemCount++;
+          transactionsWithCategory.add(tx.id);
+        }
+      });
+    });
+
+    return {
+      filteredTotal: total,
+      filteredTransactionCount: transactionsWithCategory.size,
+      filteredItemCount: itemCount,
+    };
+  }, [shiftTransactions, selectedCategory, productCategoryMap, todayTotal]);
 
   // Define columns for DataTable
   const columns = useMemo<ColumnDef<Transaction>[]>(() => [
@@ -289,6 +327,9 @@ export function SalesDetailPage() {
       </div>
 
       {/* Summary Cards */}
+      <div className="mb-2 text-sm text-text-secondary font-medium">
+        📊 {shiftLabel}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {/* Total All Categories */}
         <div className="card stats-card">
@@ -296,7 +337,7 @@ export function SalesDetailPage() {
             <DollarSign size={24} />
           </div>
           <div className="stats-card-value">{formatCurrency(todayTotal)}</div>
-          <div className="stats-card-label">Total Semua Kategori ({transactions.length} Transaksi)</div>
+          <div className="stats-card-label">Total Semua Kategori ({shiftTransactionCount} Transaksi)</div>
         </div>
 
         {/* Filtered by Category */}
@@ -319,11 +360,11 @@ export function SalesDetailPage() {
                 </select>
               </div>
             </div>
-            <div className="text-2xl font-bold text-warning-600">{formatCurrency(filteredTotal)}</div>
+            <div className="text-2xl font-bold text-warning-600">{formatCurrency(shiftFilteredTotal)}</div>
             <div className="text-sm text-gray-500">
               {selectedCategory === 'all' 
-                ? `${transactions.length} Transaksi` 
-                : `${filteredItemCount} Item dari ${filteredTransactionCount} Transaksi`
+                ? `${shiftTransactionCount} Transaksi` 
+                : `${shiftFilteredItemCount} Item dari ${shiftFilteredTransactionCount} Transaksi`
               }
             </div>
           </div>

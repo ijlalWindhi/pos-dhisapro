@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search, ClipboardList } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { MainLayout } from '@/components/layout';
-import { useTodayBrilinkTransactions, useTodayBrilinkSummary, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts } from './hooks/useBrilink';
+import { useTodayBrilinkTransactions, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
 import type { BRILinkTransactionType, BRILinkFormData, BRILinkTransaction, BRILinkProfitCategory, SavedBRILinkAccount } from '@/types';
@@ -219,7 +219,6 @@ const emptyFormData: BRILinkFormData = {
 export function BrilinkPage() {
   const { user } = useAuth();
   const { data: transactions = [], isLoading } = useTodayBrilinkTransactions();
-  const { data: summary } = useTodayBrilinkSummary();
   const { data: savedAccounts = [] } = useSavedBrilinkAccounts();
   const createTransaction = useCreateBrilinkTransaction();
   const updateTransaction = useUpdateBrilinkTransaction();
@@ -313,10 +312,57 @@ export function BrilinkPage() {
     }
   };
 
-  const brilinkProfit = summary?.brilinkProfit || 0;
-  const griyaBayarProfit = summary?.griyaBayarProfit || 0;
-  const propanaProfit = summary?.propanaProfit || 0;
-  const todayCount = summary?.totalTransactions || 0;
+  // Calculate shift-based summary (Shift 1: 00:00-13:00, Shift 2: 13:01-23:59)
+  const shiftSummary = useMemo(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    // Determine current shift start time
+    // Shift 1: 00:00-13:00 (inclusive of 13:00)
+    // Shift 2: 13:01-23:59
+    const isShift1 = currentHour < 13 || (currentHour === 13 && currentMinute === 0);
+    
+    const shiftStart = new Date(now);
+    const shiftEnd = new Date(now);
+    
+    if (isShift1) {
+      shiftStart.setHours(0, 0, 0, 0);
+      shiftEnd.setHours(13, 0, 59, 999); // End of 13:00
+    } else {
+      shiftStart.setHours(13, 1, 0, 0);
+      shiftEnd.setHours(23, 59, 59, 999); // End of day
+    }
+    
+    // Filter transactions for current shift (within start and end bounds)
+    const shiftTransactions = transactions.filter(tx => {
+      const txTime = tx.createdAt;
+      return txTime >= shiftStart && txTime <= shiftEnd;
+    });
+    
+    // Calculate profits for current shift
+    const brilinkProfit = shiftTransactions
+      .filter(tx => tx.profitCategory === 'brilink' || !tx.profitCategory)
+      .reduce((sum, tx) => sum + tx.profit, 0);
+    
+    const griyaBayarProfit = shiftTransactions
+      .filter(tx => tx.profitCategory === 'griya_bayar')
+      .reduce((sum, tx) => sum + tx.profit, 0);
+    
+    const propanaProfit = shiftTransactions
+      .filter(tx => tx.profitCategory === 'propana')
+      .reduce((sum, tx) => sum + tx.profit, 0);
+    
+    return {
+      brilinkProfit,
+      griyaBayarProfit,
+      propanaProfit,
+      totalTransactions: shiftTransactions.length,
+      shiftLabel: isShift1 ? 'Shift Pagi (00:00-13:00)' : 'Shift Siang (13:01-23:59)',
+    };
+  }, [transactions]);
+
+  const { brilinkProfit, griyaBayarProfit, propanaProfit, totalTransactions: todayCount, shiftLabel } = shiftSummary;
   const isSubmitting = createTransaction.isPending || updateTransaction.isPending;
   const isPropana = formData.transactionType === 'propana';
   const isGriyaBayar = formData.transactionType === 'griya_bayar';
@@ -341,6 +387,9 @@ export function BrilinkPage() {
       </div>
 
       {/* Summary Cards */}
+      <div className="mb-2 text-sm text-text-secondary font-medium">
+        📊 {shiftLabel}
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div className="card stats-card">
           <div className="stats-card-icon warning">
