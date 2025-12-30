@@ -86,6 +86,7 @@ export function SalesPage() {
     setAmountPaid('');
     setPaymentMethod('cash');
     setCartExpanded(false);
+    setSearchQuery('');
   };
 
   const total = cart.reduce((sum, item) => sum + item.subtotal, 0);
