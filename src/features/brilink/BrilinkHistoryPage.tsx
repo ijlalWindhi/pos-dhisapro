@@ -185,6 +185,15 @@ export function BrilinkHistoryPage() {
       ),
     },
     {
+      accessorKey: 'endingBalance',
+      header: 'Saldo Akhir',
+      cell: ({ row }) => (
+        <span className="text-right block">
+          {row.original.endingBalance != null ? formatCurrency(row.original.endingBalance) : '-'}
+        </span>
+      ),
+    },
+    {
       accessorKey: 'profit',
       header: 'Profit',
       cell: ({ getValue }) => (

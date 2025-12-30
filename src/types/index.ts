@@ -127,6 +127,7 @@ export interface BRILinkTransaction {
   amount: number;
   adminFee: number;
   profit: number;
+  endingBalance?: number;
   customerName?: string;
   customerPhone?: string;
   referenceNo?: string; // legacy - for backward compatibility
@@ -171,6 +172,7 @@ export interface BRILinkFormData {
   amount: number;
   adminFee: number;
   profit: number;
+  endingBalance?: number;
   customerName?: string;
   customerPhone?: string;
   saveAccount?: boolean;

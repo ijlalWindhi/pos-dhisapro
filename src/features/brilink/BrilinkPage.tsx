@@ -259,6 +259,7 @@ export function BrilinkPage() {
       amount: tx.amount,
       adminFee: tx.adminFee,
       profit: tx.profit,
+      endingBalance: tx.endingBalance || 0,
       customerName: tx.customerName || '',
       saveAccount: false,
     });
@@ -368,6 +369,7 @@ export function BrilinkPage() {
   const isSubmitting = createTransaction.isPending || updateTransaction.isPending;
   const isPropana = formData.transactionType === 'propana';
   const isGriyaBayar = formData.transactionType === 'griya_bayar';
+  const requiresEndingBalance = ['transfer', 'cash_deposit', 'cash_withdrawal', 'payment', 'topup'].includes(formData.transactionType);
 
   // Define columns for DataTable
   const columns = useMemo<ColumnDef<BRILinkTransaction>[]>(() => [
@@ -411,6 +413,15 @@ export function BrilinkPage() {
       header: 'Nominal',
       cell: ({ row }) => (
         <span className="text-right block">{formatCurrency(row.original.amount)}</span>
+      ),
+    },
+    {
+      accessorKey: 'endingBalance',
+      header: 'Saldo Akhir',
+      cell: ({ row }) => (
+        <span className="text-right block">
+          {row.original.endingBalance != null ? formatCurrency(row.original.endingBalance) : '-'}
+        </span>
       ),
     },
     {
@@ -531,7 +542,7 @@ export function BrilinkPage() {
       {/* Form Modal */}
       {showForm && (
         <div className="modal-overlay">
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="modal modal-xl" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
                 {editingTransaction ? 'Edit Transaksi' : 'Input Transaksi'}
@@ -616,11 +627,22 @@ export function BrilinkPage() {
                         />
                       </div>
                     </div>
+                    <div className="form-group">
+                      <label className="form-label">Saldo Akhir</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="0"
+                        inputMode="numeric"
+                        value={formatNumber(formData.endingBalance || 0)}
+                        onChange={(e) => setFormData({ ...formData, endingBalance: parseNumber(e.target.value) })}
+                      />
+                    </div>
                   </>
                 ) : (
                   <>
                     {/* Standard BRILink / Griya Bayar Fields */}
-                    <div className="grid grid-2">
+                    <div className="grid grid-3">
                       <div className="form-group">
                         <label className="form-label form-label-required">No Rekening</label>
                         <input
@@ -643,8 +665,6 @@ export function BrilinkPage() {
                           required
                         />
                       </div>
-                    </div>
-                    <div className="grid grid-3">
                       <div className="form-group">
                         <label className="form-label form-label-required">Nominal</label>
                         <input
@@ -657,6 +677,8 @@ export function BrilinkPage() {
                           required
                         />
                       </div>
+                    </div>
+                    <div className="grid grid-3">
                       <div className="form-group">
                         <label className="form-label">Biaya Admin (Opsional)</label>
                         <input
@@ -680,6 +702,18 @@ export function BrilinkPage() {
                           value={formatNumber(formData.profit)}
                           onChange={(e) => setFormData({ ...formData, profit: parseNumber(e.target.value) })}
                           required={!isGriyaBayar}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={`form-label ${requiresEndingBalance ? 'form-label-required' : ''}`}>Saldo Akhir</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="0"
+                          inputMode="numeric"
+                          value={formatNumber(formData.endingBalance || 0)}
+                          onChange={(e) => setFormData({ ...formData, endingBalance: parseNumber(e.target.value) })}
+                          required={requiresEndingBalance}
                         />
                       </div>
                     </div>

@@ -89,6 +89,7 @@ export const brilinkService = {
       amount: data.amount,
       adminFee: data.adminFee,
       profit: data.profit,
+      endingBalance: data.endingBalance || null,
       customerName: data.customerName || null,
       customerPhone: data.customerPhone || null,
       operatorId,
@@ -149,6 +150,7 @@ export const brilinkService = {
       amount: data.amount,
       adminFee: data.adminFee,
       profit: data.profit,
+      endingBalance: data.endingBalance || null,
       customerName: data.customerName || null,
       customerPhone: data.customerPhone || null,
     });
