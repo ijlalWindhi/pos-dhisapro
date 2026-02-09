@@ -30,6 +30,15 @@ export function SalesDetailPage() {
   const [amountPaid, setAmountPaid] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState<Transaction | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  
+  // Default shift based on current time
+  const [selectedShift, setSelectedShift] = useState<'pagi' | 'siang'>(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    // Shift Pagi: 00:00-13:00, Shift Siang: 13:01-23:59
+    return (currentHour < 13 || (currentHour === 13 && currentMinute === 0)) ? 'pagi' : 'siang';
+  });
 
   // Create product -> category mapping for items without categoryId
   const productCategoryMap = useMemo(() => {
@@ -144,18 +153,11 @@ export function SalesDetailPage() {
   // Calculate shift-based summary (Shift 1: 00:00-13:00, Shift 2: 13:01-23:59)
   const shiftSummary = useMemo(() => {
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    
-    // Determine current shift start time
-    // Shift 1: 00:00-13:00 (inclusive of 13:00)
-    // Shift 2: 13:01-23:59
-    const isShift1 = currentHour < 13 || (currentHour === 13 && currentMinute === 0);
     
     const shiftStart = new Date(now);
     const shiftEnd = new Date(now);
     
-    if (isShift1) {
+    if (selectedShift === 'pagi') {
       shiftStart.setHours(0, 0, 0, 0);
       shiftEnd.setHours(13, 0, 59, 999); // End of 13:00
     } else {
@@ -163,22 +165,22 @@ export function SalesDetailPage() {
       shiftEnd.setHours(23, 59, 59, 999); // End of day
     }
     
-    // Filter transactions for current shift (within start and end bounds)
+    // Filter transactions for selected shift (within start and end bounds)
     const shiftTransactions = transactions.filter(tx => {
       const txTime = tx.createdAt;
       return txTime >= shiftStart && txTime <= shiftEnd;
     });
     
-    // Calculate total for current shift
+    // Calculate total for selected shift
     const shiftTotal = shiftTransactions.reduce((sum, tx) => sum + tx.total, 0);
     
     return {
       todayTotal: shiftTotal,
       transactionCount: shiftTransactions.length,
-      shiftLabel: isShift1 ? 'Shift Pagi (00:00-13:00)' : 'Shift Siang (13:01-23:59)',
+      shiftLabel: selectedShift === 'pagi' ? 'Shift Pagi (00:00-13:00)' : 'Shift Siang (13:01-23:59)',
       shiftTransactions,
     };
-  }, [transactions]);
+  }, [transactions, selectedShift]);
 
   const { todayTotal, transactionCount: shiftTransactionCount, shiftLabel, shiftTransactions } = shiftSummary;
 
@@ -338,9 +340,17 @@ export function SalesDetailPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="mb-2 text-sm text-text-secondary font-medium">
-        📊 {shiftLabel}
+      {/* Shift Filter */}
+      <div className="mb-2 flex items-center gap-3">
+        <span className="text-sm text-text-secondary font-medium min-w-fit">📊 {shiftLabel}</span>
+        <select
+          className="form-select form-select-sm py-1 px-2 text-sm w-32"
+          value={selectedShift}
+          onChange={(e) => setSelectedShift(e.target.value as 'pagi' | 'siang')}
+        >
+          <option value="pagi">Shift Pagi</option>
+          <option value="siang">Shift Siang</option>
+        </select>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {/* Total All Categories */}
