@@ -26,31 +26,29 @@ export function DataTable<TData>({
   emptyIcon,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   const table = useReactTable({
     data,
     columns,
     state: {
       sorting,
+      pagination,
     },
     enableColumnResizing: true,
+    autoResetPageIndex: false,
     onSortingChange: setSorting,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize,
-      },
-    },
   });
 
-  const pageIndex = table.getState().pagination.pageIndex;
+  const pageIndex = pagination.pageIndex;
   const pageCount = table.getPageCount();
   const totalRows = data.length;
-  const startRow = pageIndex * pageSize + 1;
-  const endRow = Math.min((pageIndex + 1) * pageSize, totalRows);
+  const startRow = pageIndex * pagination.pageSize + 1;
+  const endRow = Math.min((pageIndex + 1) * pagination.pageSize, totalRows);
 
   return (
     <div className="data-table">
@@ -65,11 +63,10 @@ export function DataTable<TData>({
           <span>Per halaman:</span>
           <select
             className="form-select w-auto min-h-8 py-1 px-2 pr-7 text-xs"
-            value={pageSize}
+            value={pagination.pageSize}
             onChange={(e) => {
               const size = Number(e.target.value);
-              setPageSize(size);
-              table.setPageSize(size);
+              setPagination(prev => ({ ...prev, pageIndex: 0, pageSize: size }));
             }}
           >
             {[5, 10, 20, 50].map((size) => (

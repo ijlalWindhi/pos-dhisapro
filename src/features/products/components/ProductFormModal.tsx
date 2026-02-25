@@ -48,6 +48,7 @@ export function ProductFormModal({
 }: ProductFormModalProps) {
   const [formData, setFormData] = useState<ProductFormData>(emptyFormData);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   // Reset form when modal opens/closes or product changes
   useEffect(() => {
@@ -67,6 +68,7 @@ export function ProductFormModal({
       setFormData(emptyFormData);
     }
     setNameError(null);
+    setPriceError(null);
   }, [isOpen, product]);
 
   // Generate SKU prefix from category name
@@ -141,7 +143,14 @@ export function ProductFormModal({
       return;
     }
     
+    // Validate buy price <= sell price
+    if (formData.buyPrice > formData.price) {
+      setPriceError('Harga beli tidak boleh lebih besar dari harga jual');
+      return;
+    }
+    
     setNameError(null);
+    setPriceError(null);
     await onSubmit(formData);
   };
 
@@ -235,23 +244,32 @@ export function ProductFormModal({
                 <label className="form-label form-label-required">Harga Beli</label>
                 <input
                   type="text"
-                  className="form-input"
+                  className={`form-input ${priceError ? 'border-danger-500' : ''}`}
                   placeholder="0"
                   inputMode="numeric"
                   value={formatNumber(formData.buyPrice)}
-                  onChange={(e) => setFormData({ ...formData, buyPrice: parseNumber(e.target.value) })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, buyPrice: parseNumber(e.target.value) });
+                    if (priceError) setPriceError(null);
+                  }}
                   required
                 />
+                {priceError && (
+                  <p className="text-xs text-danger-500 mt-1">{priceError}</p>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label form-label-required">Harga Jual</label>
                 <input
                   type="text"
-                  className="form-input"
+                  className={`form-input ${priceError ? 'border-danger-500' : ''}`}
                   placeholder="0"
                   inputMode="numeric"
                   value={formatNumber(formData.price)}
-                  onChange={(e) => setFormData({ ...formData, price: parseNumber(e.target.value) })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, price: parseNumber(e.target.value) });
+                    if (priceError) setPriceError(null);
+                  }}
                   required
                 />
               </div>
