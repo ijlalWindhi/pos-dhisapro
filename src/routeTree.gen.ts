@@ -24,6 +24,7 @@ import { Route as BrilinkIndexRouteImport } from './routes/brilink/index'
 import { Route as SalesTodayRouteImport } from './routes/sales/today'
 import { Route as ReportsDateRouteImport } from './routes/reports/$date'
 import { Route as BrilinkHistoryRouteImport } from './routes/brilink/history'
+import { Route as BrilinkDataRouteImport } from './routes/brilink/data'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -100,6 +101,11 @@ const BrilinkHistoryRoute = BrilinkHistoryRouteImport.update({
   path: '/brilink/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BrilinkDataRoute = BrilinkDataRouteImport.update({
+  id: '/brilink/data',
+  path: '/brilink/data',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/roles': typeof RolesRoute
   '/sales': typeof SalesRouteWithChildren
   '/users': typeof UsersRoute
+  '/brilink/data': typeof BrilinkDataRoute
   '/brilink/history': typeof BrilinkHistoryRoute
   '/reports/$date': typeof ReportsDateRoute
   '/sales/today': typeof SalesTodayRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/roles': typeof RolesRoute
   '/users': typeof UsersRoute
+  '/brilink/data': typeof BrilinkDataRoute
   '/brilink/history': typeof BrilinkHistoryRoute
   '/reports/$date': typeof ReportsDateRoute
   '/sales/today': typeof SalesTodayRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/roles': typeof RolesRoute
   '/sales': typeof SalesRouteWithChildren
   '/users': typeof UsersRoute
+  '/brilink/data': typeof BrilinkDataRoute
   '/brilink/history': typeof BrilinkHistoryRoute
   '/reports/$date': typeof ReportsDateRoute
   '/sales/today': typeof SalesTodayRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/roles'
     | '/sales'
     | '/users'
+    | '/brilink/data'
     | '/brilink/history'
     | '/reports/$date'
     | '/sales/today'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/roles'
     | '/users'
+    | '/brilink/data'
     | '/brilink/history'
     | '/reports/$date'
     | '/sales/today'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/roles'
     | '/sales'
     | '/users'
+    | '/brilink/data'
     | '/brilink/history'
     | '/reports/$date'
     | '/sales/today'
@@ -213,6 +225,7 @@ export interface RootRouteChildren {
   RolesRoute: typeof RolesRoute
   SalesRoute: typeof SalesRouteWithChildren
   UsersRoute: typeof UsersRoute
+  BrilinkDataRoute: typeof BrilinkDataRoute
   BrilinkHistoryRoute: typeof BrilinkHistoryRoute
   BrilinkIndexRoute: typeof BrilinkIndexRoute
 }
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrilinkHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/brilink/data': {
+      id: '/brilink/data'
+      path: '/brilink/data'
+      fullPath: '/brilink/data'
+      preLoaderRoute: typeof BrilinkDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -362,6 +382,7 @@ const rootRouteChildren: RootRouteChildren = {
   RolesRoute: RolesRoute,
   SalesRoute: SalesRouteWithChildren,
   UsersRoute: UsersRoute,
+  BrilinkDataRoute: BrilinkDataRoute,
   BrilinkHistoryRoute: BrilinkHistoryRoute,
   BrilinkIndexRoute: BrilinkIndexRoute,
 }

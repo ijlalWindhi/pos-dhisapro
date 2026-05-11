@@ -4,6 +4,7 @@ import {
   addDoc,
   doc,
   updateDoc, 
+  deleteDoc,
   query, 
   where, 
   orderBy,
@@ -11,10 +12,11 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import type { BRILinkTransaction, BRILinkFormData, SavedBRILinkAccount } from '@/types';
+import type { BRILinkTransaction, BRILinkFormData, SavedBRILinkAccount, BRILinkBank } from '@/types';
 
 const COLLECTION = 'brilink_transactions';
 const SAVED_ACCOUNTS_COLLECTION = 'brilink_saved_accounts';
+const BANKS_COLLECTION = 'brilink_banks';
 
 // Helper function to get start of day in local timezone
 function getStartOfDay(date: Date = new Date()): Date {
@@ -39,6 +41,7 @@ export const brilinkService = {
       id: doc.id,
       ...doc.data(),
       profitCategory: doc.data().profitCategory || 'brilink', // default for backward compat
+      bankName: doc.data().bankName || '',
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as BRILinkTransaction[];
   },
@@ -56,6 +59,7 @@ export const brilinkService = {
       id: doc.id,
       ...doc.data(),
       profitCategory: doc.data().profitCategory || 'brilink', // default for backward compat
+      bankName: doc.data().bankName || '',
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as BRILinkTransaction[];
   },
@@ -75,7 +79,7 @@ export const brilinkService = {
   ): Promise<string> {
     // Save account if requested
     if (data.saveAccount && data.accountName && data.accountNumber) {
-      await this.saveAccount(data.accountName, data.accountNumber);
+      await this.saveAccount(data.accountName, data.accountNumber, data.bankName);
     }
 
     const docRef = await addDoc(collection(db, COLLECTION), {
@@ -86,6 +90,7 @@ export const brilinkService = {
         : `${data.accountName} - ${data.accountNumber}`,
       accountName: data.accountName,
       accountNumber: data.accountNumber,
+      bankName: data.bankName,
       amount: data.amount,
       adminFee: data.adminFee,
       profit: data.profit,
@@ -147,6 +152,7 @@ export const brilinkService = {
         : `${data.accountName} - ${data.accountNumber}`,
       accountName: data.accountName,
       accountNumber: data.accountNumber,
+      bankName: data.bankName,
       amount: data.amount,
       adminFee: data.adminFee,
       profit: data.profit,
@@ -167,6 +173,7 @@ export const brilinkService = {
     return allTransactions.filter(tx => 
       tx.accountName?.toLowerCase().includes(term) ||
       tx.accountNumber?.toLowerCase().includes(term) ||
+      tx.bankName?.toLowerCase().includes(term) ||
       tx.customerName?.toLowerCase().includes(term) ||
       tx.customerPhone?.toLowerCase().includes(term) ||
       tx.description?.toLowerCase().includes(term)
@@ -180,11 +187,12 @@ export const brilinkService = {
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
+      bankName: doc.data().bankName || '',
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as SavedBRILinkAccount[];
   },
 
-  async saveAccount(accountName: string, accountNumber: string): Promise<string> {
+  async saveAccount(accountName: string, accountNumber: string, bankName: string): Promise<string> {
     // Check if already exists
     const existing = await this.getSavedAccounts();
     const found = existing.find(acc => acc.accountNumber === accountNumber);
@@ -193,9 +201,74 @@ export const brilinkService = {
     const docRef = await addDoc(collection(db, SAVED_ACCOUNTS_COLLECTION), {
       accountName,
       accountNumber,
+      bankName,
       createdAt: serverTimestamp(),
     });
     return docRef.id;
+  },
+
+  async createSavedAccount(data: { accountName: string; accountNumber: string; bankName: string }): Promise<string> {
+    const existing = await this.getSavedAccounts();
+    const found = existing.find(acc => acc.accountNumber === data.accountNumber);
+    if (found) return found.id;
+
+    const docRef = await addDoc(collection(db, SAVED_ACCOUNTS_COLLECTION), {
+      accountName: data.accountName,
+      accountNumber: data.accountNumber,
+      bankName: data.bankName,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+  },
+
+  async updateSavedAccount(id: string, data: { accountName: string; accountNumber: string; bankName: string }): Promise<void> {
+    const docRef = doc(db, SAVED_ACCOUNTS_COLLECTION, id);
+    await updateDoc(docRef, {
+      accountName: data.accountName,
+      accountNumber: data.accountNumber,
+      bankName: data.bankName,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  async deleteSavedAccount(id: string): Promise<void> {
+    const docRef = doc(db, SAVED_ACCOUNTS_COLLECTION, id);
+    await deleteDoc(docRef);
+  },
+
+  // === Banks ===
+  async getBanks(): Promise<BRILinkBank[]> {
+    const q = query(collection(db, BANKS_COLLECTION), orderBy('name', 'asc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+    })) as BRILinkBank[];
+  },
+
+  async createBank(name: string): Promise<string> {
+    const docRef = await addDoc(collection(db, BANKS_COLLECTION), {
+      name,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+  },
+
+  async updateBank(id: string, name: string): Promise<void> {
+    const docRef = doc(db, BANKS_COLLECTION, id);
+    await updateDoc(docRef, {
+      name,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  async deleteBank(id: string): Promise<void> {
+    const docRef = doc(db, BANKS_COLLECTION, id);
+    await deleteDoc(docRef);
   },
 };
 

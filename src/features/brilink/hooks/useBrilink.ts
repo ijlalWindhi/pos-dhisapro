@@ -140,3 +140,252 @@ export function useSavedBrilinkAccounts() {
   });
 }
 
+export function useCreateSavedBrilinkAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      data,
+      userId,
+      userName,
+    }: {
+      data: { accountName: string; accountNumber: string; bankName: string };
+      userId: string;
+      userName: string;
+    }) => {
+      const id = await brilinkService.createSavedAccount(data);
+
+      await createAuditLog(
+        'brilink',
+        'create',
+        id,
+        `${data.accountName} - ${data.accountNumber}`,
+        userId,
+        userName,
+        null,
+        { ...data, id }
+      );
+
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'savedAccounts'] });
+      toast.success('Rekening berhasil ditambahkan');
+    },
+    onError: (error) => {
+      toast.error('Gagal menambahkan rekening');
+      console.error('Create saved account error:', error);
+    },
+  });
+}
+
+export function useUpdateSavedBrilinkAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+      userId,
+      userName,
+    }: {
+      id: string;
+      data: { accountName: string; accountNumber: string; bankName: string };
+      userId: string;
+      userName: string;
+    }) => {
+      const beforeData = (await brilinkService.getSavedAccounts()).find(acc => acc.id === id);
+
+      await brilinkService.updateSavedAccount(id, data);
+
+      await createAuditLog(
+        'brilink',
+        'update',
+        id,
+        `${data.accountName} - ${data.accountNumber}`,
+        userId,
+        userName,
+        beforeData as unknown as Record<string, unknown>,
+        { ...beforeData, ...data, id } as unknown as Record<string, unknown>
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'savedAccounts'] });
+      toast.success('Rekening berhasil diperbarui');
+    },
+    onError: (error) => {
+      toast.error('Gagal memperbarui rekening');
+      console.error('Update saved account error:', error);
+    },
+  });
+}
+
+export function useDeleteSavedBrilinkAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      accountName,
+      userId,
+      userName,
+    }: {
+      id: string;
+      accountName: string;
+      userId: string;
+      userName: string;
+    }) => {
+      const beforeData = (await brilinkService.getSavedAccounts()).find(acc => acc.id === id);
+
+      await brilinkService.deleteSavedAccount(id);
+
+      await createAuditLog(
+        'brilink',
+        'delete',
+        id,
+        accountName,
+        userId,
+        userName,
+        beforeData as unknown as Record<string, unknown>,
+        null
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'savedAccounts'] });
+      toast.success('Rekening berhasil dihapus');
+    },
+    onError: (error) => {
+      toast.error('Gagal menghapus rekening');
+      console.error('Delete saved account error:', error);
+    },
+  });
+}
+
+export function useBrilinkBanks() {
+  return useQuery({
+    queryKey: [QUERY_KEY, 'banks'],
+    queryFn: () => brilinkService.getBanks(),
+  });
+}
+
+export function useCreateBrilinkBank() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      name,
+      userId,
+      userName,
+    }: {
+      name: string;
+      userId: string;
+      userName: string;
+    }) => {
+      const id = await brilinkService.createBank(name);
+
+      await createAuditLog(
+        'brilink',
+        'create',
+        id,
+        `Bank: ${name}`,
+        userId,
+        userName,
+        null,
+        { id, name }
+      );
+
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'banks'] });
+      toast.success('Bank berhasil ditambahkan');
+    },
+    onError: (error) => {
+      toast.error('Gagal menambahkan bank');
+      console.error('Create bank error:', error);
+    },
+  });
+}
+
+export function useUpdateBrilinkBank() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      name,
+      userId,
+      userName,
+    }: {
+      id: string;
+      name: string;
+      userId: string;
+      userName: string;
+    }) => {
+      const beforeData = (await brilinkService.getBanks()).find(bank => bank.id === id);
+
+      await brilinkService.updateBank(id, name);
+
+      await createAuditLog(
+        'brilink',
+        'update',
+        id,
+        `Bank: ${name}`,
+        userId,
+        userName,
+        beforeData as unknown as Record<string, unknown>,
+        { ...beforeData, name } as unknown as Record<string, unknown>
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'banks'] });
+      toast.success('Bank berhasil diperbarui');
+    },
+    onError: (error) => {
+      toast.error('Gagal memperbarui bank');
+      console.error('Update bank error:', error);
+    },
+  });
+}
+
+export function useDeleteBrilinkBank() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      bankName,
+      userId,
+      userName,
+    }: {
+      id: string;
+      bankName: string;
+      userId: string;
+      userName: string;
+    }) => {
+      const beforeData = (await brilinkService.getBanks()).find(bank => bank.id === id);
+
+      await brilinkService.deleteBank(id);
+
+      await createAuditLog(
+        'brilink',
+        'delete',
+        id,
+        `Bank: ${bankName}`,
+        userId,
+        userName,
+        beforeData as unknown as Record<string, unknown>,
+        null
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'banks'] });
+      toast.success('Bank berhasil dihapus');
+    },
+    onError: (error) => {
+      toast.error('Gagal menghapus bank');
+      console.error('Delete bank error:', error);
+    },
+  });
+}
+

@@ -124,6 +124,7 @@ export interface BRILinkTransaction {
   description: string; // legacy - for backward compatibility
   accountName?: string;
   accountNumber?: string;
+  bankName?: string;
   amount: number;
   adminFee: number;
   profit: number;
@@ -169,6 +170,7 @@ export interface BRILinkFormData {
   profitCategory: BRILinkProfitCategory;
   accountName: string;
   accountNumber: string;
+  bankName: string;
   amount: number;
   adminFee: number;
   profit: number;
@@ -182,7 +184,15 @@ export interface SavedBRILinkAccount {
   id: string;
   accountName: string;
   accountNumber: string;
+  bankName: string;
   createdAt: Date;
+}
+
+export interface BRILinkBank {
+  id: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface RoleFormData {

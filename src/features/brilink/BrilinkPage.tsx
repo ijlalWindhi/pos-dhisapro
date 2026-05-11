@@ -1,23 +1,30 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search, ClipboardList } from 'lucide-react';
+import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search, ClipboardList, Database } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
-import { useTodayBrilinkTransactions, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts } from './hooks/useBrilink';
+import { useTodayBrilinkTransactions, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts, useBrilinkBanks } from './hooks/useBrilink';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
 import type { BRILinkTransactionType, BRILinkFormData, BRILinkTransaction, BRILinkProfitCategory, SavedBRILinkAccount } from '@/types';
 
-const transactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet; profitCategory: BRILinkProfitCategory }[] = [
+const baseTransactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet; profitCategory: BRILinkProfitCategory }[] = [
   { value: 'transfer', label: 'Transfer', icon: ArrowRightLeft, profitCategory: 'brilink' },
-  { value: 'cash_deposit', label: 'Setor Tunai', icon: ArrowDownToLine, profitCategory: 'brilink' },
   { value: 'cash_withdrawal', label: 'Tarik Tunai', icon: ArrowUpFromLine, profitCategory: 'brilink' },
-  { value: 'payment', label: 'Pembayaran', icon: CreditCard, profitCategory: 'brilink' },
   { value: 'topup', label: 'Top Up', icon: Smartphone, profitCategory: 'brilink' },
   { value: 'griya_bayar', label: 'Griya Bayar', icon: Home, profitCategory: 'griya_bayar' },
   { value: 'propana', label: 'Propana', icon: Flame, profitCategory: 'propana' },
 ];
+
+const legacyTransactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet; profitCategory: BRILinkProfitCategory }[] = [
+  { value: 'cash_deposit', label: 'Setor Tunai', icon: ArrowDownToLine, profitCategory: 'brilink' },
+  { value: 'payment', label: 'Pembayaran', icon: CreditCard, profitCategory: 'brilink' },
+];
+
+const allTransactionTypes = [...baseTransactionTypes, ...legacyTransactionTypes];
+
+const allowedWithdrawalAccountNames = new Set(['ARISTA TRISNANTARI', 'HARTOYO']);
 
 const profitCategoryLabels: Record<BRILinkProfitCategory, string> = {
   brilink: 'BRILink',
@@ -30,26 +37,29 @@ function SearchableAccountSelect({
   savedAccounts,
   selectedAccount,
   onSelect,
-}: {
+}: Readonly<{
   savedAccounts: SavedBRILinkAccount[];
   selectedAccount: string;
   onSelect: (accountNumber: string) => void;
-}) {
+}>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputId = 'saved-account-search';
 
   // Filter accounts based on search term
   const filteredAccounts = savedAccounts.filter(
     (acc) =>
       acc.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      acc.accountNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      acc.accountNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      acc.bankName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Get selected account display name
   const selectedAccountData = savedAccounts.find((acc) => acc.accountNumber === selectedAccount);
+  const selectedBankSuffix = selectedAccountData?.bankName ? ` (${selectedAccountData.bankName})` : '';
   const displayValue = selectedAccountData
-    ? `${selectedAccountData.accountName} - ${selectedAccountData.accountNumber}`
+    ? `${selectedAccountData.accountName} - ${selectedAccountData.accountNumber}${selectedBankSuffix}`
     : '';
 
   // Close dropdown when clicking outside
@@ -76,7 +86,7 @@ function SearchableAccountSelect({
 
   return (
     <div className="form-group" ref={containerRef}>
-      <label className="form-label">Pilih Rekening Tersimpan</label>
+      <label className="form-label" htmlFor={searchInputId}>Pilih Rekening Tersimpan</label>
       <div style={{ position: 'relative' }}>
         {/* Selected value or search input */}
         {selectedAccount && !isOpen ? (
@@ -86,12 +96,24 @@ function SearchableAccountSelect({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              cursor: 'pointer',
               backgroundColor: 'var(--color-gray-50)',
+              gap: '8px',
             }}
-            onClick={() => setIsOpen(true)}
           >
-            <span>{displayValue}</span>
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              style={{
+                flex: 1,
+                textAlign: 'left',
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+              }}
+            >
+              <span>{displayValue}</span>
+            </button>
             <button
               type="button"
               onClick={(e) => {
@@ -123,9 +145,10 @@ function SearchableAccountSelect({
               }}
             />
             <input
+              id={searchInputId}
               type="text"
               className="form-input"
-              placeholder="Cari nama atau nomor rekening..."
+              placeholder="Cari nama, nomor rekening, atau bank..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => setIsOpen(true)}
@@ -153,8 +176,13 @@ function SearchableAccountSelect({
             }}
           >
             {/* Manual input option */}
-            <div
+            <button
+              type="button"
               style={{
+                width: '100%',
+                textAlign: 'left',
+                background: 'none',
+                border: 'none',
                 padding: '10px 12px',
                 cursor: 'pointer',
                 borderBottom: '1px solid var(--color-gray-100)',
@@ -166,7 +194,7 @@ function SearchableAccountSelect({
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               -- Input manual --
-            </div>
+            </button>
 
             {filteredAccounts.length === 0 ? (
               <div
@@ -181,9 +209,14 @@ function SearchableAccountSelect({
               </div>
             ) : (
               filteredAccounts.map((acc) => (
-                <div
+                <button
+                  type="button"
                   key={acc.id}
                   style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    background: 'none',
+                    border: 'none',
                     padding: '10px 12px',
                     cursor: 'pointer',
                     borderBottom: '1px solid var(--color-gray-50)',
@@ -196,7 +229,12 @@ function SearchableAccountSelect({
                   <div style={{ fontSize: '12px', color: 'var(--color-gray-500)' }}>
                     {acc.accountNumber}
                   </div>
-                </div>
+                  {acc.bankName && (
+                    <div style={{ fontSize: '12px', color: 'var(--color-gray-400)' }}>
+                      {acc.bankName}
+                    </div>
+                  )}
+                </button>
               ))
             )}
           </div>
@@ -211,6 +249,7 @@ const emptyFormData: BRILinkFormData = {
   profitCategory: 'brilink',
   accountName: '',
   accountNumber: '',
+  bankName: '',
   amount: 0,
   adminFee: 0,
   profit: 0,
@@ -222,6 +261,7 @@ export function BrilinkPage() {
   const { user } = useAuth();
   const { data: transactions = [], isLoading } = useTodayBrilinkTransactions();
   const { data: savedAccounts = [] } = useSavedBrilinkAccounts();
+  const { data: banks = [] } = useBrilinkBanks();
   const createTransaction = useCreateBrilinkTransaction();
   const updateTransaction = useUpdateBrilinkTransaction();
   
@@ -229,6 +269,25 @@ export function BrilinkPage() {
   const [editingTransaction, setEditingTransaction] = useState<BRILinkTransaction | null>(null);
   const [formData, setFormData] = useState<BRILinkFormData>(emptyFormData);
   const [selectedSavedAccount, setSelectedSavedAccount] = useState('');
+
+  const formTransactionTypes = useMemo(() => {
+    if (!editingTransaction) return baseTransactionTypes;
+    const legacyType = legacyTransactionTypes.find((t) => t.value === editingTransaction.transactionType);
+    if (!legacyType) return baseTransactionTypes;
+    return [...baseTransactionTypes, legacyType];
+  }, [editingTransaction]);
+
+  const filteredSavedAccounts = useMemo(() => {
+    if (formData.transactionType !== 'cash_withdrawal') return savedAccounts;
+    return savedAccounts.filter((acc) =>
+      allowedWithdrawalAccountNames.has(acc.accountName.trim().toUpperCase())
+    );
+  }, [savedAccounts, formData.transactionType]);
+
+  const isAccountSaved = useMemo(() => {
+    if (!formData.accountNumber) return false;
+    return savedAccounts.some((acc) => acc.accountNumber === formData.accountNumber);
+  }, [formData.accountNumber, savedAccounts]);
 
   const resetForm = () => {
     setFormData(emptyFormData);
@@ -239,7 +298,7 @@ export function BrilinkPage() {
 
   const openForm = (type?: BRILinkTransactionType) => {
     setEditingTransaction(null);
-    const typeInfo = transactionTypes.find(t => t.value === (type || 'transfer'));
+    const typeInfo = allTransactionTypes.find(t => t.value === (type || 'transfer'));
     setFormData({ 
       ...emptyFormData, 
       transactionType: type || 'transfer',
@@ -251,11 +310,13 @@ export function BrilinkPage() {
 
   const openEditForm = (tx: BRILinkTransaction) => {
     setEditingTransaction(tx);
+    const accountName = tx.accountName || tx.description?.split(' - ')[0] || '';
     setFormData({
       transactionType: tx.transactionType,
       profitCategory: tx.profitCategory || 'brilink',
-      accountName: tx.accountName || tx.description?.split(' - ')[0] || '',
+      accountName: accountName.toUpperCase(),
       accountNumber: tx.accountNumber || tx.description?.split(' - ')[1] || '',
+      bankName: tx.bankName || '',
       amount: tx.amount,
       adminFee: tx.adminFee,
       profit: tx.profit,
@@ -269,7 +330,7 @@ export function BrilinkPage() {
 
   // Update profitCategory when transactionType changes
   useEffect(() => {
-    const typeInfo = transactionTypes.find(t => t.value === formData.transactionType);
+    const typeInfo = allTransactionTypes.find(t => t.value === formData.transactionType);
     if (typeInfo && formData.profitCategory !== typeInfo.profitCategory) {
       setFormData(prev => ({ ...prev, profitCategory: typeInfo.profitCategory }));
     }
@@ -278,17 +339,42 @@ export function BrilinkPage() {
   // Handle saved account selection
   const handleSavedAccountChange = (accountNumber: string) => {
     setSelectedSavedAccount(accountNumber);
-    if (accountNumber) {
-      const account = savedAccounts.find(a => a.accountNumber === accountNumber);
-      if (account) {
-        setFormData(prev => ({
-          ...prev,
-          accountName: account.accountName,
-          accountNumber: account.accountNumber,
-        }));
-      }
+    if (!accountNumber) {
+      setFormData(prev => ({
+        ...prev,
+        accountName: '',
+        accountNumber: '',
+        bankName: '',
+      }));
+      return;
+    }
+    const account = savedAccounts.find(a => a.accountNumber === accountNumber);
+    if (account) {
+      setFormData(prev => ({
+        ...prev,
+        accountName: account.accountName,
+        accountNumber: account.accountNumber,
+        bankName: account.bankName,
+        saveAccount: false,
+      }));
     }
   };
+
+  useEffect(() => {
+    if (isAccountSaved && formData.saveAccount) {
+      setFormData(prev => ({ ...prev, saveAccount: false }));
+    }
+  }, [isAccountSaved, formData.saveAccount]);
+
+  useEffect(() => {
+    if (formData.transactionType !== 'cash_withdrawal' || !selectedSavedAccount) return;
+    const selectedAccount = savedAccounts.find((acc) => acc.accountNumber === selectedSavedAccount);
+    if (!selectedAccount) return;
+    if (!allowedWithdrawalAccountNames.has(selectedAccount.accountName.trim().toUpperCase())) {
+      setSelectedSavedAccount('');
+      setFormData(prev => ({ ...prev, accountName: '', accountNumber: '', bankName: '' }));
+    }
+  }, [formData.transactionType, selectedSavedAccount, savedAccounts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,7 +455,7 @@ export function BrilinkPage() {
   const isSubmitting = createTransaction.isPending || updateTransaction.isPending;
   const isPropana = formData.transactionType === 'propana';
   const isGriyaBayar = formData.transactionType === 'griya_bayar';
-  const requiresEndingBalance = ['transfer', 'cash_deposit', 'cash_withdrawal', 'payment', 'topup'].includes(formData.transactionType);
+  const requiresEndingBalance = ['transfer', 'cash_withdrawal', 'topup'].includes(formData.transactionType);
 
   // Define columns for DataTable
   const columns = useMemo<ColumnDef<BRILinkTransaction>[]>(() => [
@@ -382,7 +468,7 @@ export function BrilinkPage() {
       accessorKey: 'transactionType',
       header: 'Tipe',
       cell: ({ row }) => {
-        const typeInfo = transactionTypes.find((t) => t.value === row.original.transactionType);
+        const typeInfo = allTransactionTypes.find((t) => t.value === row.original.transactionType);
         return (
           <span className="badge badge-warning">{typeInfo?.label || row.original.transactionType}</span>
         );
@@ -458,6 +544,10 @@ export function BrilinkPage() {
           <p className="page-subtitle">Catat transaksi BRILink, Griya Bayar & Propana</p>
         </div>
         <div className="flex gap-2">
+          <Link to="/brilink/data" className="btn btn-secondary">
+            <Database size={18} />
+            <span>Data</span>
+          </Link>
           <Link to="/brilink/history" className="btn btn-secondary">
             <ClipboardList size={18} />
             <span>Riwayat</span>
@@ -511,7 +601,7 @@ export function BrilinkPage() {
         </div>
         <div className="card-body">
           <div className="flex gap-2 flex-wrap">
-            {transactionTypes.map((type) => (
+            {baseTransactionTypes.map((type) => (
               <button
                 key={type.value}
                 className="btn btn-secondary flex-1 min-w-[100px]"
@@ -542,7 +632,7 @@ export function BrilinkPage() {
       {/* Form Modal */}
       {showForm && (
         <div className="modal-overlay">
-          <div className="modal modal-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="modal modal-xl">
             <div className="modal-header">
               <h3 className="modal-title">
                 {editingTransaction ? 'Edit Transaksi' : 'Input Transaksi'}
@@ -554,13 +644,16 @@ export function BrilinkPage() {
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label form-label-required">Tipe Transaksi</label>
+                  <label className="form-label form-label-required" htmlFor="brilink-transaction-type">
+                    Tipe Transaksi
+                  </label>
                   <select
+                    id="brilink-transaction-type"
                     className="form-select"
                     value={formData.transactionType}
                     onChange={(e) => setFormData({ ...formData, transactionType: e.target.value as BRILinkTransactionType })}
                   >
-                    {transactionTypes.map((type) => (
+                    {formTransactionTypes.map((type) => (
                       <option key={type.value} value={type.value}>{type.label}</option>
                     ))}
                   </select>
@@ -569,7 +662,7 @@ export function BrilinkPage() {
                 {/* Saved Accounts (only for non-Propana) */}
                 {!isPropana && savedAccounts.length > 0 && !editingTransaction && (
                   <SearchableAccountSelect
-                    savedAccounts={savedAccounts}
+                    savedAccounts={filteredSavedAccounts}
                     selectedAccount={selectedSavedAccount}
                     onSelect={handleSavedAccountChange}
                   />
@@ -580,8 +673,11 @@ export function BrilinkPage() {
                   <>
                     <div className="grid grid-2">
                       <div className="form-group">
-                        <label className="form-label form-label-required">No. Telepon</label>
+                        <label className="form-label form-label-required" htmlFor="brilink-phone">
+                          No. Telepon
+                        </label>
                         <input
+                          id="brilink-phone"
                           type="text"
                           className="form-input"
                           placeholder="08xxxxxxxxxx"
@@ -591,8 +687,11 @@ export function BrilinkPage() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Nama Pelanggan (Opsional)</label>
+                        <label className="form-label" htmlFor="brilink-propana-customer-name">
+                          Nama Pelanggan (Opsional)
+                        </label>
                         <input
+                          id="brilink-propana-customer-name"
                           type="text"
                           className="form-input"
                           placeholder="Nama pelanggan"
@@ -603,8 +702,11 @@ export function BrilinkPage() {
                     </div>
                     <div className="grid grid-2">
                       <div className="form-group">
-                        <label className="form-label form-label-required">Nominal</label>
+                        <label className="form-label form-label-required" htmlFor="brilink-propana-amount">
+                          Nominal
+                        </label>
                         <input
+                          id="brilink-propana-amount"
                           type="text"
                           className="form-input"
                           placeholder="0"
@@ -615,8 +717,11 @@ export function BrilinkPage() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label form-label-required">Profit</label>
+                        <label className="form-label form-label-required" htmlFor="brilink-propana-profit">
+                          Profit
+                        </label>
                         <input
+                          id="brilink-propana-profit"
                           type="text"
                           className="form-input"
                           placeholder="0"
@@ -628,8 +733,9 @@ export function BrilinkPage() {
                       </div>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Saldo Akhir</label>
+                      <label className="form-label" htmlFor="brilink-propana-ending-balance">Saldo Akhir</label>
                       <input
+                        id="brilink-propana-ending-balance"
                         type="text"
                         className="form-input"
                         placeholder="0"
@@ -644,30 +750,66 @@ export function BrilinkPage() {
                     {/* Standard BRILink / Griya Bayar Fields */}
                     <div className="grid grid-3">
                       <div className="form-group">
-                        <label className="form-label form-label-required">No Rekening</label>
+                        <label className="form-label form-label-required" htmlFor="brilink-account-number">
+                          No Rekening
+                        </label>
                         <input
+                          id="brilink-account-number"
                           type="text"
                           className="form-input"
                           placeholder="Contoh: 1234567890"
+                          inputMode="numeric"
                           value={formData.accountNumber}
-                          onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value.replaceAll(/\D/g, '') })}
                           required
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label form-label-required">Nama Rekening</label>
+                        <label className="form-label form-label-required" htmlFor="brilink-account-name">
+                          Nama Rekening
+                        </label>
                         <input
+                          id="brilink-account-name"
                           type="text"
                           className="form-input"
-                          placeholder="Contoh: John Doe"
+                          placeholder="Contoh: JOHN DOE"
                           value={formData.accountName}
-                          onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, accountName: e.target.value.toUpperCase() })}
                           required
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label form-label-required">Nominal</label>
+                        <label className="form-label form-label-required" htmlFor="brilink-bank-select">
+                          Bank
+                        </label>
+                        <select
+                          id="brilink-bank-select"
+                          className="form-select"
+                          value={formData.bankName}
+                          onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                          required
+                        >
+                          <option value="">{banks.length === 0 ? 'Belum ada data bank' : 'Pilih bank'}</option>
+                          {banks.map((bank) => (
+                            <option key={bank.id} value={bank.name}>
+                              {bank.name}
+                            </option>
+                          ))}
+                        </select>
+                        {banks.length === 0 && (
+                          <div className="text-xs text-warning-600 mt-1">
+                            Tambahkan data bank di menu Data.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-4">
+                      <div className="form-group">
+                        <label className="form-label form-label-required" htmlFor="brilink-amount">
+                          Nominal
+                        </label>
                         <input
+                          id="brilink-amount"
                           type="text"
                           className="form-input"
                           placeholder="0"
@@ -677,11 +819,12 @@ export function BrilinkPage() {
                           required
                         />
                       </div>
-                    </div>
-                    <div className="grid grid-3">
                       <div className="form-group">
-                        <label className="form-label">Biaya Admin (Opsional)</label>
+                        <label className="form-label" htmlFor="brilink-admin-fee">
+                          Biaya Admin (Opsional)
+                        </label>
                         <input
+                          id="brilink-admin-fee"
                           type="text"
                           className="form-input"
                           placeholder="0"
@@ -691,10 +834,14 @@ export function BrilinkPage() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className={`form-label ${!isGriyaBayar ? 'form-label-required' : ''}`}>
+                        <label
+                          className={`form-label ${!isGriyaBayar ? 'form-label-required' : ''}`}
+                          htmlFor="brilink-profit"
+                        >
                           Profit {isGriyaBayar && '(Opsional)'}
                         </label>
                         <input
+                          id="brilink-profit"
                           type="text"
                           className="form-input"
                           placeholder="0"
@@ -705,8 +852,11 @@ export function BrilinkPage() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className={`form-label ${requiresEndingBalance ? 'form-label-required' : ''}`}>Saldo Akhir</label>
+                        <label className={`form-label ${requiresEndingBalance ? 'form-label-required' : ''}`} htmlFor="brilink-ending-balance">
+                          Saldo Akhir
+                        </label>
                         <input
+                          id="brilink-ending-balance"
                           type="text"
                           className="form-input"
                           placeholder="0"
@@ -725,17 +875,34 @@ export function BrilinkPage() {
                           <input
                             type="checkbox"
                             checked={formData.saveAccount || false}
+                            disabled={isAccountSaved}
                             onChange={(e) => setFormData({ ...formData, saveAccount: e.target.checked })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (!isAccountSaved) {
+                                  setFormData((prev) => ({ ...prev, saveAccount: !prev.saveAccount }));
+                                }
+                              }
+                            }}
                           />
                           <Save size={16} className="mr-1" />
                           <span>Simpan no rekening untuk transaksi berikutnya</span>
                         </label>
+                        {isAccountSaved && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Rekening sudah tersimpan.
+                          </div>
+                        )}
                       </div>
                     )}
 
                     <div className="form-group">
-                      <label className="form-label">Nama Pelanggan (Opsional)</label>
+                      <label className="form-label" htmlFor="brilink-customer-name">
+                        Nama Pelanggan (Opsional)
+                      </label>
                       <input
+                        id="brilink-customer-name"
                         type="text"
                         className="form-input"
                         placeholder="Nama pelanggan"
