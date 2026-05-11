@@ -26,6 +26,11 @@ const allTransactionTypes = [...baseTransactionTypes, ...legacyTransactionTypes]
 
 const allowedWithdrawalAccountNames = new Set(['ARISTA TRISNANTARI', 'HARTOYO']);
 
+const toTitleCase = (value: string) =>
+  value.replace(/\S+/g, (word) => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`);
+
+const toUpperBank = (value: string) => value.toUpperCase();
+
 const profitCategoryLabels: Record<BRILinkProfitCategory, string> = {
   brilink: 'BRILink',
   griya_bayar: 'Griya Bayar',
@@ -57,9 +62,11 @@ function SearchableAccountSelect({
 
   // Get selected account display name
   const selectedAccountData = savedAccounts.find((acc) => acc.accountNumber === selectedAccount);
-  const selectedBankSuffix = selectedAccountData?.bankName ? ` (${selectedAccountData.bankName})` : '';
+  const selectedBankSuffix = selectedAccountData?.bankName
+    ? ` (${toUpperBank(selectedAccountData.bankName)})`
+    : '';
   const displayValue = selectedAccountData
-    ? `${selectedAccountData.accountName} - ${selectedAccountData.accountNumber}${selectedBankSuffix}`
+    ? `${toTitleCase(selectedAccountData.accountName)} - ${selectedAccountData.accountNumber}${selectedBankSuffix}`
     : '';
 
   // Close dropdown when clicking outside
@@ -225,13 +232,13 @@ function SearchableAccountSelect({
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-gray-50)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <div style={{ fontWeight: 500 }}>{acc.accountName}</div>
+                  <div style={{ fontWeight: 500 }}>{toTitleCase(acc.accountName)}</div>
                   <div style={{ fontSize: '12px', color: 'var(--color-gray-500)' }}>
                     {acc.accountNumber}
                   </div>
                   {acc.bankName && (
                     <div style={{ fontSize: '12px', color: 'var(--color-gray-400)' }}>
-                      {acc.bankName}
+                      {toUpperBank(acc.bankName)}
                     </div>
                   )}
                 </button>
@@ -316,7 +323,7 @@ export function BrilinkPage() {
       profitCategory: tx.profitCategory || 'brilink',
       accountName: accountName.toUpperCase(),
       accountNumber: tx.accountNumber || tx.description?.split(' - ')[1] || '',
-      bankName: tx.bankName || '',
+      bankName: tx.bankName ? toUpperBank(tx.bankName) : '',
       amount: tx.amount,
       adminFee: tx.adminFee,
       profit: tx.profit,
@@ -352,9 +359,9 @@ export function BrilinkPage() {
     if (account) {
       setFormData(prev => ({
         ...prev,
-        accountName: account.accountName,
+        accountName: account.accountName.toUpperCase(),
         accountNumber: account.accountNumber,
-        bankName: account.bankName,
+        bankName: account.bankName ? toUpperBank(account.bankName) : '',
         saveAccount: false,
       }));
     }
@@ -493,6 +500,11 @@ export function BrilinkPage() {
     {
       accessorKey: 'description',
       header: 'No Rek / Nama',
+    },
+    {
+      accessorKey: 'bankName',
+      header: 'Bank',
+      cell: ({ row }) => row.original.bankName ? toUpperBank(row.original.bankName) : '-',
     },
     {
       accessorKey: 'amount',
@@ -786,15 +798,18 @@ export function BrilinkPage() {
                           id="brilink-bank-select"
                           className="form-select"
                           value={formData.bankName}
-                          onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, bankName: toUpperBank(e.target.value) })}
                           required
                         >
                           <option value="">{banks.length === 0 ? 'Belum ada data bank' : 'Pilih bank'}</option>
-                          {banks.map((bank) => (
-                            <option key={bank.id} value={bank.name}>
-                              {bank.name}
-                            </option>
-                          ))}
+                          {banks.map((bank) => {
+                            const bankValue = toUpperBank(bank.name);
+                            return (
+                              <option key={bank.id} value={bankValue}>
+                                {bankValue}
+                              </option>
+                            );
+                          })}
                         </select>
                         {banks.length === 0 && (
                           <div className="text-xs text-warning-600 mt-1">

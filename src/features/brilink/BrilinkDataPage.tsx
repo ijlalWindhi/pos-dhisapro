@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Edit2, Trash2, Landmark, CreditCard, ArrowLeft, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Landmark, CreditCard, ArrowLeft, X, Search } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
@@ -37,7 +37,7 @@ function BankFormModal({
 
   useEffect(() => {
     if (isOpen && bank) {
-      setName(bank.name);
+      setName(bank.name.toUpperCase());
     } else if (isOpen) {
       setName('');
     }
@@ -45,7 +45,7 @@ function BankFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({ name: name.trim() });
+    await onSubmit({ name: name.trim().toUpperCase() });
   };
 
   if (!isOpen) return null;
@@ -71,7 +71,7 @@ function BankFormModal({
                 className="form-input"
                 placeholder="Contoh: BRI"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.toUpperCase())}
                 required
               />
             </div>
@@ -231,6 +231,8 @@ export function BrilinkDataPage() {
   const [editingBank, setEditingBank] = useState<BRILinkBank | null>(null);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
   const [deleteBankId, setDeleteBankId] = useState<string | null>(null);
+  const [accountSearch, setAccountSearch] = useState('');
+  const [bankSearch, setBankSearch] = useState('');
 
   const { user } = useAuth();
   const { data: savedAccounts = [], isLoading: isLoadingAccounts } = useSavedBrilinkAccounts();
@@ -323,6 +325,22 @@ export function BrilinkDataPage() {
     });
     setDeleteBankId(null);
   };
+
+  const filteredAccounts = useMemo(() => {
+    const term = accountSearch.trim().toLowerCase();
+    if (!term) return savedAccounts;
+    return savedAccounts.filter((account) =>
+      account.accountName.toLowerCase().includes(term) ||
+      account.accountNumber.toLowerCase().includes(term) ||
+      account.bankName.toLowerCase().includes(term)
+    );
+  }, [accountSearch, savedAccounts]);
+
+  const filteredBanks = useMemo(() => {
+    const term = bankSearch.trim().toLowerCase();
+    if (!term) return banks;
+    return banks.filter((bank) => bank.name.toLowerCase().includes(term));
+  }, [bankSearch, banks]);
 
   const accountColumns = useMemo<ColumnDef<SavedBRILinkAccount>[]>(() => [
     {
@@ -429,15 +447,37 @@ export function BrilinkDataPage() {
 
       {activeTab === 'accounts' ? (
         <div className="card">
-          <div className="card-header flex items-center justify-between">
-            <h3 className="card-title">Daftar Rekening</h3>
+          <div className="card-header flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-2">
+              <h3 className="card-title">Daftar Rekening</h3>
+              <div style={{ position: 'relative', maxWidth: '320px' }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--color-gray-400)',
+                  }}
+                />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Cari nama, no rekening, atau bank..."
+                  value={accountSearch}
+                  onChange={(e) => setAccountSearch(e.target.value)}
+                  style={{ paddingLeft: '36px' }}
+                />
+              </div>
+            </div>
             <button className="btn btn-primary" onClick={() => openAccountModal()}>
               <Plus size={18} />
               <span>Tambah Rekening</span>
             </button>
           </div>
           <DataTable
-            data={savedAccounts}
+            data={filteredAccounts}
             columns={accountColumns}
             isLoading={isLoadingAccounts}
             emptyMessage="Belum ada rekening tersimpan"
@@ -446,15 +486,37 @@ export function BrilinkDataPage() {
         </div>
       ) : (
         <div className="card">
-          <div className="card-header flex items-center justify-between">
-            <h3 className="card-title">Daftar Bank</h3>
+          <div className="card-header flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-2">
+              <h3 className="card-title">Daftar Bank</h3>
+              <div style={{ position: 'relative', maxWidth: '320px' }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--color-gray-400)',
+                  }}
+                />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Cari nama bank..."
+                  value={bankSearch}
+                  onChange={(e) => setBankSearch(e.target.value)}
+                  style={{ paddingLeft: '36px' }}
+                />
+              </div>
+            </div>
             <button className="btn btn-primary" onClick={() => openBankModal()}>
               <Plus size={18} />
               <span>Tambah Bank</span>
             </button>
           </div>
           <DataTable
-            data={banks}
+            data={filteredBanks}
             columns={bankColumns}
             isLoading={isLoadingBanks}
             emptyMessage="Belum ada data bank"
