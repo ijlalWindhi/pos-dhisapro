@@ -513,3 +513,110 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400;
 }
+
+.shift-print-area {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A6 portrait;
+    margin: 6mm;
+  }
+
+  html,
+  body {
+    width: 105mm;
+    min-height: 148mm;
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .shift-print-area,
+  .shift-print-area * {
+    visibility: visible !important;
+  }
+
+  .shift-print-area {
+    display: block !important;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #000000;
+    background: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .shift-print-sheet {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: calc(148mm - 12mm);
+    padding: 8mm 5mm;
+    border: 1px solid #000000;
+    background: #ffffff;
+  }
+
+  .shift-print-title {
+    margin: 0 0 8mm;
+    color: #000000;
+    font-size: 18pt;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .shift-print-meta {
+    margin-bottom: 7mm;
+    font-size: 9pt;
+    line-height: 1.35;
+  }
+
+  .shift-print-meta-row {
+    display: grid;
+    grid-template-columns: 28mm 4mm 1fr;
+    gap: 0;
+    align-items: start;
+    margin-bottom: 1.5mm;
+  }
+
+  .shift-print-employee-row {
+    margin-top: 1mm;
+  }
+
+  .shift-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #000000;
+    font-size: 9pt;
+  }
+
+  .shift-print-table th,
+  .shift-print-table td {
+    border: 1px solid #000000;
+    padding: 1.8mm 1.5mm;
+    vertical-align: middle;
+  }
+
+  .shift-print-table th {
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .shift-print-label {
+    width: 42%;
+    font-weight: 600;
+  }
+
+  .shift-print-amount {
+    width: 58%;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .shift-print-total-row td {
+    font-weight: 700;
+  }
+}

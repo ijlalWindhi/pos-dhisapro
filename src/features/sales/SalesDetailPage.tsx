@@ -1,24 +1,76 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, ShoppingCart, Edit2, Trash2, X, Plus, Minus, DollarSign, Tag } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Edit2, Trash2, X, Plus, Minus, DollarSign, Tag, Printer } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useTodayTransactions, useUpdateTransactionWithItems, useDeleteTransaction } from './hooks/useTransactions';
+import { useTodayBrilinkTransactions } from '@/features/brilink/hooks/useBrilink';
 import { useCategories } from '@/features/settings/hooks/useCategories';
+import { useUsers } from '@/features/settings/hooks/useUsers';
 import { useProducts } from '@/features/products/hooks/useProducts';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatCurrency } from '@/utils/format';
 import type { Transaction, TransactionItem } from '@/types';
 
+type ShiftKey = 'pagi' | 'siang';
+
 interface EditableItem extends TransactionItem {
   originalQuantity: number;
 }
 
+interface ShiftPrintRow {
+  label: string;
+  amount: number;
+}
+
+const getDefaultShift = (): ShiftKey => {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  return (currentHour < 13 || (currentHour === 13 && currentMinute === 0)) ? 'pagi' : 'siang';
+};
+
+const getShiftRange = (shift: ShiftKey, baseDate = new Date()) => {
+  const start = new Date(baseDate);
+  const end = new Date(baseDate);
+
+  if (shift === 'pagi') {
+    start.setHours(0, 0, 0, 0);
+    end.setHours(13, 0, 59, 999);
+  } else {
+    start.setHours(13, 1, 0, 0);
+    end.setHours(23, 59, 59, 999);
+  }
+
+  return { start, end };
+};
+
+const getShiftName = (shift: ShiftKey) => shift === 'pagi' ? 'Pagi' : 'Siang';
+
+const getShiftLabel = (shift: ShiftKey) => (
+  shift === 'pagi' ? 'Shift Pagi (00:00-13:00)' : 'Shift Siang (13:01-23:59)'
+);
+
+const formatReceiptDate = (date: Date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+const formatPrintAmount = (amount: number) => (
+  `Rp ${new Intl.NumberFormat('id-ID').format(amount)}`
+);
+
+const normalizeCategoryName = (name: string) => name.trim().toLocaleLowerCase('id-ID');
+
 export function SalesDetailPage() {
   const { data: transactions = [], isLoading } = useTodayTransactions();
+  const { data: brilinkTransactions = [], isLoading: loadingBrilink } = useTodayBrilinkTransactions();
   const { data: categories = [] } = useCategories();
+  const { data: users = [], isLoading: loadingUsers } = useUsers();
   const { data: products = [] } = useProducts();
   const updateTransaction = useUpdateTransactionWithItems();
   const deleteTransaction = useDeleteTransaction();
@@ -30,15 +82,11 @@ export function SalesDetailPage() {
   const [amountPaid, setAmountPaid] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState<Transaction | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isShiftPrintModalOpen, setIsShiftPrintModalOpen] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   
   // Default shift based on current time
-  const [selectedShift, setSelectedShift] = useState<'pagi' | 'siang'>(() => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    // Shift Pagi: 00:00-13:00, Shift Siang: 13:01-23:59
-    return (currentHour < 13 || (currentHour === 13 && currentMinute === 0)) ? 'pagi' : 'siang';
-  });
+  const [selectedShift, setSelectedShift] = useState<ShiftKey>(getDefaultShift);
 
   // Create product -> category mapping for items without categoryId
   const productCategoryMap = useMemo(() => {
@@ -51,6 +99,26 @@ export function SalesDetailPage() {
     });
     return map;
   }, [products]);
+
+  const categoryKeyByName = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach(category => {
+      map.set(normalizeCategoryName(category.name), `id:${category.id}`);
+    });
+    return map;
+  }, [categories]);
+
+  const activeUsers = useMemo(() => {
+    const active = users.filter(userItem => userItem.isActive);
+    return active.length > 0 ? active : users;
+  }, [users]);
+
+  const selectedPrintUserNames = useMemo(() => {
+    const userMap = new Map(users.map(userItem => [userItem.id, userItem.name]));
+    return selectedUserIds
+      .map(id => userMap.get(id))
+      .filter((name): name is string => !!name);
+  }, [selectedUserIds, users]);
 
   const openEditForm = (tx: Transaction) => {
     setEditingTransaction(tx);
@@ -152,18 +220,7 @@ export function SalesDetailPage() {
 
   // Calculate shift-based summary (Shift 1: 00:00-13:00, Shift 2: 13:01-23:59)
   const shiftSummary = useMemo(() => {
-    const now = new Date();
-    
-    const shiftStart = new Date(now);
-    const shiftEnd = new Date(now);
-    
-    if (selectedShift === 'pagi') {
-      shiftStart.setHours(0, 0, 0, 0);
-      shiftEnd.setHours(13, 0, 59, 999); // End of 13:00
-    } else {
-      shiftStart.setHours(13, 1, 0, 0);
-      shiftEnd.setHours(23, 59, 59, 999); // End of day
-    }
+    const { start: shiftStart, end: shiftEnd } = getShiftRange(selectedShift);
     
     // Filter transactions for selected shift (within start and end bounds)
     const shiftTransactions = transactions.filter(tx => {
@@ -177,12 +234,19 @@ export function SalesDetailPage() {
     return {
       todayTotal: shiftTotal,
       transactionCount: shiftTransactions.length,
-      shiftLabel: selectedShift === 'pagi' ? 'Shift Pagi (00:00-13:00)' : 'Shift Siang (13:01-23:59)',
+      shiftLabel: getShiftLabel(selectedShift),
       shiftTransactions,
+      shiftStart,
+      shiftEnd,
     };
   }, [transactions, selectedShift]);
 
-  const { todayTotal, transactionCount: shiftTransactionCount, shiftLabel, shiftTransactions } = shiftSummary;
+  const { todayTotal, transactionCount: shiftTransactionCount, shiftLabel, shiftTransactions, shiftStart, shiftEnd } = shiftSummary;
+
+  const shiftBrilinkTransactions = useMemo(() =>
+    brilinkTransactions.filter(tx => tx.createdAt >= shiftStart && tx.createdAt <= shiftEnd),
+    [brilinkTransactions, shiftStart, shiftEnd]
+  );
 
   // Recalculate filtered totals and filtered transactions based on shift transactions
   const { 
@@ -229,6 +293,110 @@ export function SalesDetailPage() {
       filteredTransactions: transactionsWithCategory,
     };
   }, [shiftTransactions, selectedCategory, productCategoryMap, todayTotal]);
+
+  const shiftPrintSummary = useMemo(() => {
+    const categoryRowsByKey = new Map<string, ShiftPrintRow & { order: number }>();
+
+    categories.forEach((category, index) => {
+      categoryRowsByKey.set(`id:${category.id}`, {
+        label: category.name,
+        amount: 0,
+        order: index,
+      });
+    });
+
+    let dynamicOrder = categories.length;
+
+    shiftTransactions.forEach(tx => {
+      tx.items.forEach(item => {
+        const mappedCategory = productCategoryMap.get(item.productId);
+        const categoryId = item.categoryId || mappedCategory?.categoryId;
+        const categoryName = item.categoryName || mappedCategory?.categoryName || 'Tanpa Kategori';
+        const normalizedName = normalizeCategoryName(categoryName);
+        const knownKeyByName = categoryKeyByName.get(normalizedName);
+        const categoryKey = categoryId && categoryRowsByKey.has(`id:${categoryId}`)
+          ? `id:${categoryId}`
+          : knownKeyByName || (categoryId ? `id:${categoryId}` : `name:${normalizedName || 'tanpa-kategori'}`);
+
+        const existingRow = categoryRowsByKey.get(categoryKey);
+        if (existingRow) {
+          existingRow.amount += item.subtotal;
+          return;
+        }
+
+        categoryRowsByKey.set(categoryKey, {
+          label: categoryName,
+          amount: item.subtotal,
+          order: dynamicOrder,
+        });
+        dynamicOrder += 1;
+      });
+    });
+
+    const productRows = Array.from(categoryRowsByKey.values())
+      .sort((a, b) => a.order - b.order)
+      .map(({ label, amount }) => ({ label, amount }));
+
+    const adminProfit = shiftBrilinkTransactions
+      .filter(tx => tx.profitCategory === 'brilink' || !tx.profitCategory)
+      .reduce((sum, tx) => sum + tx.profit, 0);
+
+    const griyaBayarProfit = shiftBrilinkTransactions
+      .filter(tx => tx.profitCategory === 'griya_bayar')
+      .reduce((sum, tx) => sum + tx.profit, 0);
+
+    const propanaProfit = shiftBrilinkTransactions
+      .filter(tx => tx.profitCategory === 'propana')
+      .reduce((sum, tx) => sum + tx.profit, 0);
+
+    const rows: ShiftPrintRow[] = [
+      { label: 'Admin', amount: adminProfit },
+      { label: 'Laba Listrik', amount: griyaBayarProfit },
+      { label: 'Propana', amount: propanaProfit },
+      ...productRows,
+    ];
+
+    return {
+      rows,
+      total: rows.reduce((sum, row) => sum + row.amount, 0),
+    };
+  }, [categories, categoryKeyByName, productCategoryMap, shiftBrilinkTransactions, shiftTransactions]);
+
+  const openShiftPrintModal = () => {
+    setSelectedUserIds(prev => {
+      const selectableIds = new Set(activeUsers.map(userItem => userItem.id));
+      const validPreviousSelection = prev.filter(id => selectableIds.has(id));
+
+      if (validPreviousSelection.length > 0) {
+        return validPreviousSelection;
+      }
+
+      if (user && selectableIds.has(user.id)) {
+        return [user.id];
+      }
+
+      return [];
+    });
+    setIsShiftPrintModalOpen(true);
+  };
+
+  const togglePrintUser = (userId: string) => {
+    setSelectedUserIds(prev => (
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    ));
+  };
+
+  const handlePrintShiftCalculation = () => {
+    if (selectedUserIds.length === 0) return;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => window.print());
+    });
+  };
+
+  const isPrintDataLoading = isLoading || loadingBrilink || loadingUsers;
 
   // Define columns for DataTable
   const columns = useMemo<ColumnDef<Transaction>[]>(() => [
@@ -341,16 +509,25 @@ export function SalesDetailPage() {
       </div>
 
       {/* Shift Filter */}
-      <div className="mb-2 flex items-center gap-3">
+      <div className="mb-2 flex flex-wrap items-center gap-3">
         <span className="text-sm text-text-secondary font-medium min-w-fit">📊 {shiftLabel}</span>
         <select
           className="form-select form-select-sm py-1 px-2 text-sm w-32"
           value={selectedShift}
-          onChange={(e) => setSelectedShift(e.target.value as 'pagi' | 'siang')}
+          onChange={(e) => setSelectedShift(e.target.value as ShiftKey)}
         >
           <option value="pagi">Shift Pagi</option>
           <option value="siang">Shift Siang</option>
         </select>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={openShiftPrintModal}
+          disabled={isPrintDataLoading}
+        >
+          <Printer size={16} />
+          <span>Cetak Hitungan Shift</span>
+        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {/* Total All Categories */}
@@ -402,6 +579,129 @@ export function SalesDetailPage() {
           emptyMessage={selectedCategory === 'all' ? "Belum ada transaksi hari ini" : "Tidak ada transaksi dengan kategori ini"}
           emptyIcon={<ShoppingCart size={28} />}
         />
+      </div>
+
+      {/* Shift Print Modal */}
+      {isShiftPrintModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsShiftPrintModalOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Cetak Hitungan Shift</h3>
+              <button className="modal-close" onClick={() => setIsShiftPrintModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <div className="form-label">Nama Pegawai</div>
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2">
+                  {activeUsers.length === 0 ? (
+                    <div className="px-2 py-4 text-center text-sm text-gray-400">
+                      Belum ada pengguna
+                    </div>
+                  ) : (
+                    activeUsers.map(userItem => (
+                      <label
+                        key={userItem.id}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-primary-600"
+                          checked={selectedUserIds.includes(userItem.id)}
+                          onChange={() => togglePrintUser(userItem.id)}
+                          disabled={loadingUsers}
+                        />
+                        <span>{userItem.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500">Shift</span>
+                  <span className="font-semibold">{getShiftName(selectedShift)}</span>
+                </div>
+                <div className="mt-2 flex justify-between gap-3">
+                  <span className="text-gray-500">Total</span>
+                  <span className="font-semibold">{formatCurrency(shiftPrintSummary.total)}</span>
+                </div>
+                <div className="mt-2 flex justify-between gap-3">
+                  <span className="text-gray-500">Pegawai</span>
+                  <span className="text-right font-semibold">
+                    {selectedPrintUserNames.length > 0 ? selectedPrintUserNames.join(', ') : '-'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setIsShiftPrintModalOpen(false)}>
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handlePrintShiftCalculation}
+                disabled={selectedUserIds.length === 0 || isPrintDataLoading}
+              >
+                <Printer size={18} />
+                <span>Cetak</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="shift-print-area">
+        <section className="shift-print-sheet">
+          <h1 className="shift-print-title">UD. Cahaya</h1>
+          <div className="shift-print-meta">
+            <div className="shift-print-meta-row">
+              <span>Tanggal</span>
+              <span>:</span>
+              <span>{formatReceiptDate(new Date())}</span>
+            </div>
+            <div className="shift-print-meta-row">
+              <span>Shift</span>
+              <span>:</span>
+              <span>{getShiftName(selectedShift)}</span>
+            </div>
+            <div className="shift-print-meta-row shift-print-employee-row">
+              <span>Nama Pegawai</span>
+              <span>:</span>
+              <span>{selectedPrintUserNames.length > 0 ? selectedPrintUserNames.join(', ') : '-'}</span>
+            </div>
+          </div>
+          <table className="shift-print-table">
+            <thead>
+              <tr>
+                <th className="shift-print-label">Jenis</th>
+                <th className="shift-print-amount">Jumlah</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shiftPrintSummary.rows.map(row => (
+                <tr key={row.label}>
+                  <td className="shift-print-label">{row.label}</td>
+                  <td className="shift-print-amount">{formatPrintAmount(row.amount)}</td>
+                </tr>
+              ))}
+              <tr className="shift-print-total-row">
+                <td className="shift-print-label">Total</td>
+                <td className="shift-print-amount">{formatPrintAmount(shiftPrintSummary.total)}</td>
+              </tr>
+              <tr>
+                <td className="shift-print-label">Selisih</td>
+                <td className="shift-print-amount">&nbsp;</td>
+              </tr>
+              <tr>
+                <td className="shift-print-label">Uang Ada</td>
+                <td className="shift-print-amount">&nbsp;</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
       </div>
 
       {/* Edit Modal */}

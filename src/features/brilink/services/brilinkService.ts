@@ -13,6 +13,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import type { BRILinkTransaction, BRILinkFormData, SavedBRILinkAccount, BRILinkBank } from '@/types';
+import {
+  DUPLICATE_SAVED_ACCOUNT_MESSAGE,
+  findDuplicateSavedAccount,
+  normalizeAccountName,
+  normalizeAccountNumber,
+  normalizeBankName,
+} from '../utils/account';
 
 const COLLECTION = 'brilink_transactions';
 const SAVED_ACCOUNTS_COLLECTION = 'brilink_saved_accounts';
@@ -77,9 +84,13 @@ export const brilinkService = {
     operatorId: string,
     operatorName: string
   ): Promise<string> {
+    const accountName = normalizeAccountName(data.accountName);
+    const accountNumber = normalizeAccountNumber(data.accountNumber);
+    const bankName = normalizeBankName(data.bankName);
+
     // Save account if requested
-    if (data.saveAccount && data.accountName && data.accountNumber) {
-      await this.saveAccount(data.accountName, data.accountNumber, data.bankName);
+    if (data.saveAccount && accountName && accountNumber) {
+      await this.saveAccount(accountName, accountNumber, bankName);
     }
 
     const docRef = await addDoc(collection(db, COLLECTION), {
@@ -87,10 +98,10 @@ export const brilinkService = {
       profitCategory: data.profitCategory,
       description: data.transactionType === 'propana' 
         ? `${data.customerName || 'Pelanggan'} - ${data.accountNumber}`
-        : `${data.accountName} - ${data.accountNumber}`,
-      accountName: data.accountName,
-      accountNumber: data.accountNumber,
-      bankName: data.bankName,
+        : `${accountName} - ${accountNumber}`,
+      accountName,
+      accountNumber,
+      bankName,
       amount: data.amount,
       adminFee: data.adminFee,
       profit: data.profit,
@@ -144,15 +155,23 @@ export const brilinkService = {
   // Update transaction
   async update(id: string, data: BRILinkFormData): Promise<void> {
     const docRef = doc(db, COLLECTION, id);
+    const accountName = normalizeAccountName(data.accountName);
+    const accountNumber = normalizeAccountNumber(data.accountNumber);
+    const bankName = normalizeBankName(data.bankName);
+
+    if (data.saveAccount && accountName && accountNumber) {
+      await this.saveAccount(accountName, accountNumber, bankName);
+    }
+
     await updateDoc(docRef, {
       transactionType: data.transactionType,
       profitCategory: data.profitCategory,
       description: data.transactionType === 'propana' 
         ? `${data.customerName || 'Pelanggan'} - ${data.accountNumber}`
-        : `${data.accountName} - ${data.accountNumber}`,
-      accountName: data.accountName,
-      accountNumber: data.accountNumber,
-      bankName: data.bankName,
+        : `${accountName} - ${accountNumber}`,
+      accountName,
+      accountNumber,
+      bankName,
       amount: data.amount,
       adminFee: data.adminFee,
       profit: data.profit,
@@ -193,15 +212,17 @@ export const brilinkService = {
   },
 
   async saveAccount(accountName: string, accountNumber: string, bankName: string): Promise<string> {
-    // Check if already exists
     const existing = await this.getSavedAccounts();
-    const found = existing.find(acc => acc.accountNumber === accountNumber);
-    if (found) return found.id;
+    const duplicate = findDuplicateSavedAccount(existing, { accountName, accountNumber });
+
+    if (duplicate) {
+      throw new Error(DUPLICATE_SAVED_ACCOUNT_MESSAGE);
+    }
 
     const docRef = await addDoc(collection(db, SAVED_ACCOUNTS_COLLECTION), {
-      accountName,
-      accountNumber,
-      bankName,
+      accountName: normalizeAccountName(accountName),
+      accountNumber: normalizeAccountNumber(accountNumber),
+      bankName: normalizeBankName(bankName),
       createdAt: serverTimestamp(),
     });
     return docRef.id;
@@ -209,13 +230,16 @@ export const brilinkService = {
 
   async createSavedAccount(data: { accountName: string; accountNumber: string; bankName: string }): Promise<string> {
     const existing = await this.getSavedAccounts();
-    const found = existing.find(acc => acc.accountNumber === data.accountNumber);
-    if (found) return found.id;
+    const duplicate = findDuplicateSavedAccount(existing, data);
+
+    if (duplicate) {
+      throw new Error(DUPLICATE_SAVED_ACCOUNT_MESSAGE);
+    }
 
     const docRef = await addDoc(collection(db, SAVED_ACCOUNTS_COLLECTION), {
-      accountName: data.accountName,
-      accountNumber: data.accountNumber,
-      bankName: data.bankName,
+      accountName: normalizeAccountName(data.accountName),
+      accountNumber: normalizeAccountNumber(data.accountNumber),
+      bankName: normalizeBankName(data.bankName),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -223,11 +247,18 @@ export const brilinkService = {
   },
 
   async updateSavedAccount(id: string, data: { accountName: string; accountNumber: string; bankName: string }): Promise<void> {
+    const existing = await this.getSavedAccounts();
+    const duplicate = findDuplicateSavedAccount(existing, data, id);
+
+    if (duplicate) {
+      throw new Error(DUPLICATE_SAVED_ACCOUNT_MESSAGE);
+    }
+
     const docRef = doc(db, SAVED_ACCOUNTS_COLLECTION, id);
     await updateDoc(docRef, {
-      accountName: data.accountName,
-      accountNumber: data.accountNumber,
-      bankName: data.bankName,
+      accountName: normalizeAccountName(data.accountName),
+      accountNumber: normalizeAccountNumber(data.accountNumber),
+      bankName: normalizeBankName(data.bankName),
       updatedAt: serverTimestamp(),
     });
   },
@@ -271,4 +302,3 @@ export const brilinkService = {
     await deleteDoc(docRef);
   },
 };
-

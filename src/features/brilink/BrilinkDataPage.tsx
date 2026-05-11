@@ -5,6 +5,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { SearchableBankSelect } from './components/SearchableBankSelect';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import {
   useSavedBrilinkAccounts,
@@ -17,6 +18,12 @@ import {
   useDeleteBrilinkBank,
 } from './hooks/useBrilink';
 import type { BRILinkBank, SavedBRILinkAccount } from '@/types';
+import {
+  normalizeAccountName,
+  normalizeAccountNumber,
+  normalizeBankName,
+  sanitizeAccountNameInput,
+} from './utils/account';
 
 interface BankFormModalProps {
   isOpen: boolean;
@@ -113,9 +120,9 @@ function SavedAccountFormModal({
 
   useEffect(() => {
     if (isOpen && account) {
-      setAccountName(account.accountName);
-      setAccountNumber(account.accountNumber);
-      setBankName(account.bankName || '');
+      setAccountName(sanitizeAccountNameInput(account.accountName));
+      setAccountNumber(normalizeAccountNumber(account.accountNumber));
+      setBankName(normalizeBankName(account.bankName || ''));
     } else if (isOpen) {
       setAccountName('');
       setAccountNumber('');
@@ -123,20 +130,12 @@ function SavedAccountFormModal({
     }
   }, [isOpen, account]);
 
-  const bankOptions = useMemo(() => {
-    const names = new Set(banks.map((b) => b.name));
-    if (account?.bankName && !names.has(account.bankName)) {
-      return [{ id: 'legacy', name: account.bankName }, ...banks];
-    }
-    return banks;
-  }, [banks, account]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit({
-      accountName: accountName.trim().toUpperCase(),
-      accountNumber: accountNumber.trim(),
-      bankName,
+      accountName: normalizeAccountName(accountName),
+      accountNumber: normalizeAccountNumber(accountNumber),
+      bankName: normalizeBankName(bankName),
     });
   };
 
@@ -164,7 +163,7 @@ function SavedAccountFormModal({
                   className="form-input"
                   placeholder="Contoh: JOHN DOE"
                   value={accountName}
-                  onChange={(e) => setAccountName(e.target.value.toUpperCase())}
+                  onChange={(e) => setAccountName(sanitizeAccountNameInput(e.target.value))}
                   required
                 />
               </div>
@@ -179,41 +178,25 @@ function SavedAccountFormModal({
                   placeholder="Contoh: 1234567890"
                   inputMode="numeric"
                   value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value.replaceAll(/\D/g, ''))}
+                  onChange={(e) => setAccountNumber(normalizeAccountNumber(e.target.value))}
                   required
                 />
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label form-label-required" htmlFor="brilink-bank-select">
-                Bank
-              </label>
-              <select
-                id="brilink-bank-select"
-                className="form-select"
-                value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
-                required
-              >
-                <option value="">{bankOptions.length === 0 ? 'Belum ada data bank' : 'Pilih bank'}</option>
-                {bankOptions.map((bank) => (
-                  <option key={bank.id} value={bank.name}>
-                    {bank.name}
-                  </option>
-                ))}
-              </select>
-              {bankOptions.length === 0 && (
-                <div className="text-xs text-warning-600 mt-1">
-                  Tambahkan data bank terlebih dahulu.
-                </div>
-              )}
-            </div>
+            <SearchableBankSelect
+              id="brilink-bank-select"
+              label="Bank"
+              banks={banks}
+              value={bankName}
+              required
+              onChange={setBankName}
+            />
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Batal
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting || !bankName}>
               {isSubmitting ? 'Menyimpan...' : 'Simpan'}
             </button>
           </div>

@@ -5,9 +5,17 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
 import { DataTable } from '@/components/DataTable';
 import { useTodayBrilinkTransactions, useCreateBrilinkTransaction, useUpdateBrilinkTransaction, useSavedBrilinkAccounts, useBrilinkBanks } from './hooks/useBrilink';
+import { SearchableBankSelect } from './components/SearchableBankSelect';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { formatNumber, parseNumber, formatCurrency } from '@/utils/format';
 import type { BRILinkTransactionType, BRILinkFormData, BRILinkTransaction, BRILinkProfitCategory, SavedBRILinkAccount } from '@/types';
+import {
+  findDuplicateSavedAccount,
+  normalizeAccountName,
+  normalizeAccountNumber,
+  normalizeBankName,
+  sanitizeAccountNameInput,
+} from './utils/account';
 
 const baseTransactionTypes: { value: BRILinkTransactionType; label: string; icon: typeof Wallet; profitCategory: BRILinkProfitCategory }[] = [
   { value: 'transfer', label: 'Transfer', icon: ArrowRightLeft, profitCategory: 'brilink' },
@@ -29,7 +37,7 @@ const allowedWithdrawalAccountNames = new Set(['ARISTA TRISNANTARI', 'HARTOYO'])
 const toTitleCase = (value: string) =>
   value.replace(/\S+/g, (word) => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`);
 
-const toUpperBank = (value: string) => value.toUpperCase();
+const toUpperBank = normalizeBankName;
 
 const profitCategoryLabels: Record<BRILinkProfitCategory, string> = {
   brilink: 'BRILink',
@@ -292,9 +300,12 @@ export function BrilinkPage() {
   }, [savedAccounts, formData.transactionType]);
 
   const isAccountSaved = useMemo(() => {
-    if (!formData.accountNumber) return false;
-    return savedAccounts.some((acc) => acc.accountNumber === formData.accountNumber);
-  }, [formData.accountNumber, savedAccounts]);
+    const accountName = formData.accountName;
+    const accountNumber = formData.accountNumber;
+
+    if (!accountName || !accountNumber) return false;
+    return !!findDuplicateSavedAccount(savedAccounts, { accountName, accountNumber });
+  }, [formData.accountName, formData.accountNumber, savedAccounts]);
 
   const resetForm = () => {
     setFormData(emptyFormData);
@@ -321,8 +332,8 @@ export function BrilinkPage() {
     setFormData({
       transactionType: tx.transactionType,
       profitCategory: tx.profitCategory || 'brilink',
-      accountName: accountName.toUpperCase(),
-      accountNumber: tx.accountNumber || tx.description?.split(' - ')[1] || '',
+      accountName: sanitizeAccountNameInput(accountName),
+      accountNumber: normalizeAccountNumber(tx.accountNumber || tx.description?.split(' - ')[1] || ''),
       bankName: tx.bankName ? toUpperBank(tx.bankName) : '',
       amount: tx.amount,
       adminFee: tx.adminFee,
@@ -359,8 +370,8 @@ export function BrilinkPage() {
     if (account) {
       setFormData(prev => ({
         ...prev,
-        accountName: account.accountName.toUpperCase(),
-        accountNumber: account.accountNumber,
+        accountName: sanitizeAccountNameInput(account.accountName),
+        accountNumber: normalizeAccountNumber(account.accountNumber),
         bankName: account.bankName ? toUpperBank(account.bankName) : '',
         saveAccount: false,
       }));
@@ -388,16 +399,24 @@ export function BrilinkPage() {
     if (!user) return;
 
     try {
+      const dataToSave: BRILinkFormData = {
+        ...formData,
+        accountName: normalizeAccountName(formData.accountName),
+        accountNumber: normalizeAccountNumber(formData.accountNumber),
+        bankName: normalizeBankName(formData.bankName),
+        saveAccount: isAccountSaved ? false : formData.saveAccount,
+      };
+
       if (editingTransaction) {
         await updateTransaction.mutateAsync({
           id: editingTransaction.id,
-          data: formData,
+          data: dataToSave,
           userId: user.id,
           userName: user.name,
         });
       } else {
         await createTransaction.mutateAsync({
-          data: formData,
+          data: dataToSave,
           operatorId: user.id,
           operatorName: user.name,
         });
@@ -772,7 +791,7 @@ export function BrilinkPage() {
                           placeholder="Contoh: 1234567890"
                           inputMode="numeric"
                           value={formData.accountNumber}
-                          onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value.replaceAll(/\D/g, '') })}
+                          onChange={(e) => setFormData({ ...formData, accountNumber: normalizeAccountNumber(e.target.value) })}
                           required
                         />
                       </div>
@@ -786,37 +805,18 @@ export function BrilinkPage() {
                           className="form-input"
                           placeholder="Contoh: JOHN DOE"
                           value={formData.accountName}
-                          onChange={(e) => setFormData({ ...formData, accountName: e.target.value.toUpperCase() })}
+                          onChange={(e) => setFormData({ ...formData, accountName: sanitizeAccountNameInput(e.target.value) })}
                           required
                         />
                       </div>
-                      <div className="form-group">
-                        <label className="form-label form-label-required" htmlFor="brilink-bank-select">
-                          Bank
-                        </label>
-                        <select
-                          id="brilink-bank-select"
-                          className="form-select"
-                          value={formData.bankName}
-                          onChange={(e) => setFormData({ ...formData, bankName: toUpperBank(e.target.value) })}
-                          required
-                        >
-                          <option value="">{banks.length === 0 ? 'Belum ada data bank' : 'Pilih bank'}</option>
-                          {banks.map((bank) => {
-                            const bankValue = toUpperBank(bank.name);
-                            return (
-                              <option key={bank.id} value={bankValue}>
-                                {bankValue}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        {banks.length === 0 && (
-                          <div className="text-xs text-warning-600 mt-1">
-                            Tambahkan data bank di menu Data.
-                          </div>
-                        )}
-                      </div>
+                      <SearchableBankSelect
+                        id="brilink-bank-select"
+                        label="Bank"
+                        banks={banks}
+                        value={formData.bankName}
+                        required
+                        onChange={(bankName) => setFormData({ ...formData, bankName })}
+                      />
                     </div>
                     <div className="grid grid-4">
                       <div className="form-group">
@@ -884,33 +884,31 @@ export function BrilinkPage() {
                     </div>
 
                     {/* Save Account Option */}
-                    {!editingTransaction && (
-                      <div className="form-group">
-                        <label className="form-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={formData.saveAccount || false}
-                            disabled={isAccountSaved}
-                            onChange={(e) => setFormData({ ...formData, saveAccount: e.target.checked })}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                if (!isAccountSaved) {
-                                  setFormData((prev) => ({ ...prev, saveAccount: !prev.saveAccount }));
-                                }
+                    <div className="form-group">
+                      <label className="form-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={formData.saveAccount || false}
+                          disabled={isAccountSaved}
+                          onChange={(e) => setFormData({ ...formData, saveAccount: e.target.checked })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (!isAccountSaved) {
+                                setFormData((prev) => ({ ...prev, saveAccount: !prev.saveAccount }));
                               }
-                            }}
-                          />
-                          <Save size={16} className="mr-1" />
-                          <span>Simpan no rekening untuk transaksi berikutnya</span>
-                        </label>
-                        {isAccountSaved && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Rekening sudah tersimpan.
-                          </div>
-                        )}
-                      </div>
-                    )}
+                            }
+                          }}
+                        />
+                        <Save size={16} className="mr-1" />
+                        <span>Simpan no rekening untuk transaksi berikutnya</span>
+                      </label>
+                      {isAccountSaved && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Rekening sudah tersimpan.
+                        </div>
+                      )}
+                    </div>
 
                     <div className="form-group">
                       <label className="form-label" htmlFor="brilink-customer-name">
@@ -935,7 +933,7 @@ export function BrilinkPage() {
                 <button 
                   type="submit" 
                   className="btn btn-primary"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || (!isPropana && !formData.bankName)}
                 >
                   {isSubmitting ? 'Menyimpan...' : (editingTransaction ? 'Update Transaksi' : 'Simpan Transaksi')}
                 </button>

@@ -1,10 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { brilinkService } from '../services/brilinkService';
 import { createAuditLog } from '@/features/audit/services/auditLogService';
+import { DUPLICATE_SAVED_ACCOUNT_MESSAGE } from '../utils/account';
 import type { BRILinkFormData } from '@/types';
 import toast from 'react-hot-toast';
 
 const QUERY_KEY = 'brilink';
+
+const getMutationErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message === DUPLICATE_SAVED_ACCOUNT_MESSAGE) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 export function useBrilinkTransactions() {
   return useQuery({
@@ -82,7 +91,7 @@ export function useCreateBrilinkTransaction() {
       toast.success('Transaksi BRILink berhasil disimpan');
     },
     onError: (error) => {
-      toast.error('Gagal menyimpan transaksi');
+      toast.error(getMutationErrorMessage(error, 'Gagal menyimpan transaksi'));
       console.error('Create brilink transaction error:', error);
     },
   });
@@ -127,7 +136,7 @@ export function useUpdateBrilinkTransaction() {
       toast.success('Transaksi BRILink berhasil diupdate');
     },
     onError: (error) => {
-      toast.error('Gagal mengupdate transaksi');
+      toast.error(getMutationErrorMessage(error, 'Gagal mengupdate transaksi'));
       console.error('Update brilink transaction error:', error);
     },
   });
@@ -173,7 +182,7 @@ export function useCreateSavedBrilinkAccount() {
       toast.success('Rekening berhasil ditambahkan');
     },
     onError: (error) => {
-      toast.error('Gagal menambahkan rekening');
+      toast.error(getMutationErrorMessage(error, 'Gagal menambahkan rekening'));
       console.error('Create saved account error:', error);
     },
   });
@@ -214,7 +223,7 @@ export function useUpdateSavedBrilinkAccount() {
       toast.success('Rekening berhasil diperbarui');
     },
     onError: (error) => {
-      toast.error('Gagal memperbarui rekening');
+      toast.error(getMutationErrorMessage(error, 'Gagal memperbarui rekening'));
       console.error('Update saved account error:', error);
     },
   });
@@ -388,4 +397,3 @@ export function useDeleteBrilinkBank() {
     },
   });
 }
-
