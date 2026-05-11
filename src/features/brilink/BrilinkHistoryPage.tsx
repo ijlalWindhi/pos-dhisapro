@@ -174,7 +174,7 @@ export function BrilinkHistoryPage() {
     },
     {
       accessorKey: 'description',
-      header: 'No Rek / Nama',
+      header: 'Nama / No Rek',
       enableSorting: false,
     },
     {

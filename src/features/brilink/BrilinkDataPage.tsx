@@ -463,11 +463,10 @@ export function BrilinkDataPage() {
                 />
                 <input
                   type="text"
-                  className="form-input"
+                  className="form-input w-full min-w-80"
                   placeholder="Cari nama, no rekening, atau bank..."
                   value={accountSearch}
                   onChange={(e) => setAccountSearch(e.target.value)}
-                  style={{ paddingLeft: '36px' }}
                 />
               </div>
             </div>
@@ -502,7 +501,7 @@ export function BrilinkDataPage() {
                 />
                 <input
                   type="text"
-                  className="form-input"
+                  className="form-input w-full min-w-80"
                   placeholder="Cari nama bank..."
                   value={bankSearch}
                   onChange={(e) => setBankSearch(e.target.value)}

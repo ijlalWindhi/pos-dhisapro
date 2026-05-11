@@ -499,7 +499,7 @@ export function BrilinkPage() {
     },
     {
       accessorKey: 'description',
-      header: 'No Rek / Nama',
+      header: 'Nama / No Rek',
     },
     {
       accessorKey: 'bankName',
