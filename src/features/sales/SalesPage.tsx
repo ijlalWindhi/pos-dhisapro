@@ -59,16 +59,15 @@ export function SalesPage() {
     }
   };
 
-  const updateQuantity = (productId: string, delta: number) => {
+  const setQuantity = (productId: string, nextQuantity: number) => {
     setCart((prevCart) => {
       return prevCart
         .map((item) => {
           if (item.product.id === productId) {
-            const newQuantity = item.quantity + delta;
-            if (newQuantity <= 0) return null;
+            if (nextQuantity <= 0) return null;
             // Check stock limit
-            if (newQuantity > item.product.stock) return item;
-            return { ...item, quantity: newQuantity, subtotal: newQuantity * item.product.price };
+            if (nextQuantity > item.product.stock) return item;
+            return { ...item, quantity: nextQuantity, subtotal: nextQuantity * item.product.price };
           }
           return item;
         })
@@ -231,14 +230,31 @@ export function SalesPage() {
                       <div className="flex items-center gap-1">
                         <button
                           className="btn btn-ghost btn-icon btn-sm"
-                          onClick={() => updateQuantity(item.product.id, -1)}
+                          onClick={() => setQuantity(item.product.id, item.quantity - 1)}
                         >
                           <Minus size={14} />
                         </button>
-                        <span className="w-8 text-center font-semibold text-sm">{item.quantity}</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="\d*"
+                          className="w-12 text-center font-semibold text-sm form-input"
+                          value={item.quantity}
+                          onFocus={(e) => e.currentTarget.select()}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, '');
+                            if (!raw) {
+                              setQuantity(item.product.id, 1);
+                              return;
+                            }
+                            const next = parseInt(raw, 10);
+                            setQuantity(item.product.id, next);
+                          }}
+                          aria-label="Jumlah"
+                        />
                         <button
                           className="btn btn-ghost btn-icon btn-sm"
-                          onClick={() => updateQuantity(item.product.id, 1)}
+                          onClick={() => setQuantity(item.product.id, item.quantity + 1)}
                           disabled={item.quantity >= item.product.stock}
                         >
                           <Plus size={14} />
