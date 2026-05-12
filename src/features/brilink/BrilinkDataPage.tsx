@@ -433,20 +433,11 @@ export function BrilinkDataPage() {
           <div className="card-header flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-col gap-2">
               <h3 className="card-title">Daftar Rekening</h3>
-              <div style={{ position: 'relative', maxWidth: '320px' }}>
-                <Search
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--color-gray-400)',
-                  }}
-                />
+              <div className="flex-1 relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  className="form-input w-full min-w-80"
+                  className="form-input w-full min-w-80 pl-10"
                   placeholder="Cari nama, no rekening, atau bank..."
                   value={accountSearch}
                   onChange={(e) => setAccountSearch(e.target.value)}
@@ -471,24 +462,14 @@ export function BrilinkDataPage() {
           <div className="card-header flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-col gap-2">
               <h3 className="card-title">Daftar Bank</h3>
-              <div style={{ position: 'relative', maxWidth: '320px' }}>
-                <Search
-                  size={16}
-                  style={{
-                    position: 'absolute',
-                    left: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--color-gray-400)',
-                  }}
-                />
+              <div className="flex-1 relative">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  className="form-input w-full min-w-80"
+                  className="form-input w-full min-w-80 pl-10"
                   placeholder="Cari nama bank..."
                   value={bankSearch}
                   onChange={(e) => setBankSearch(e.target.value)}
-                  style={{ paddingLeft: '36px' }}
                 />
               </div>
             </div>
