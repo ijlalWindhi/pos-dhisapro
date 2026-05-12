@@ -334,6 +334,7 @@ export function SalesDetailPage() {
     });
 
     const productRows = Array.from(categoryRowsByKey.values())
+      .filter(row => row.label.toLowerCase() !== 'materai')
       .sort((a, b) => a.order - b.order)
       .map(({ label, amount }) => ({ label, amount }));
 
