@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useTodayTransactions, useUpdateTransactionWithItems, useDeleteTransaction } from './hooks/useTransactions';
 import { useTodayBrilinkTransactions } from '@/features/brilink/hooks/useBrilink';
 import { useCategories } from '@/features/settings/hooks/useCategories';
+import { useCombinedCategories } from '@/features/settings/hooks/useCombinedCategories';
 import { useUsers } from '@/features/settings/hooks/useUsers';
 import { useProducts } from '@/features/products/hooks/useProducts';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -70,6 +71,7 @@ export function SalesDetailPage() {
   const { data: transactions = [], isLoading } = useTodayTransactions();
   const { data: brilinkTransactions = [], isLoading: loadingBrilink } = useTodayBrilinkTransactions();
   const { data: categories = [] } = useCategories();
+  const { data: combinedCategories = [] } = useCombinedCategories();
   const { data: users = [], isLoading: loadingUsers } = useUsers();
   const { data: products = [] } = useProducts();
   const updateTransaction = useUpdateTransactionWithItems();
@@ -338,6 +340,58 @@ export function SalesDetailPage() {
       .sort((a, b) => a.order - b.order)
       .map(({ label, amount }) => ({ label, amount }));
 
+    // Merge rows that belong to a combined category
+    // Build a map: categoryId -> combinedCategory name
+    const categoryIdToCombinedName = new Map<string, string>();
+    combinedCategories.forEach(cc => {
+      cc.categoryIds.forEach(catId => {
+        categoryIdToCombinedName.set(catId, cc.name);
+      });
+    });
+
+    // Build a set of category names that belong to any combined category
+    const combinedCategoryNames = new Map<string, Set<string>>();
+    combinedCategories.forEach(cc => {
+      const nameSet = new Set<string>();
+      cc.categoryIds.forEach(catId => {
+        const cat = categories.find(c => c.id === catId);
+        if (cat) nameSet.add(cat.name);
+      });
+      combinedCategoryNames.set(cc.name, nameSet);
+    });
+
+    // Merge product rows
+    const mergedRowMap = new Map<string, ShiftPrintRow>();
+    const mergedOrder: string[] = [];
+
+    productRows.forEach(row => {
+      // Check if this row's label matches a category that's part of a combined category
+      let mergedInto: string | null = null;
+      for (const [combinedName, memberNames] of combinedCategoryNames) {
+        if (memberNames.has(row.label)) {
+          mergedInto = combinedName;
+          break;
+        }
+      }
+
+      if (mergedInto) {
+        const existing = mergedRowMap.get(mergedInto);
+        if (existing) {
+          existing.amount += row.amount;
+        } else {
+          mergedRowMap.set(mergedInto, { label: mergedInto, amount: row.amount });
+          mergedOrder.push(mergedInto);
+        }
+      } else {
+        // Not part of any combined category, keep as-is
+        const key = `__standalone__${row.label}`;
+        mergedRowMap.set(key, row);
+        mergedOrder.push(key);
+      }
+    });
+
+    const finalProductRows = mergedOrder.map(key => mergedRowMap.get(key)!);
+
     const adminProfit = shiftBrilinkTransactions
       .filter(tx => tx.profitCategory === 'brilink' || !tx.profitCategory)
       .reduce((sum, tx) => sum + tx.profit, 0);
@@ -354,14 +408,14 @@ export function SalesDetailPage() {
       { label: 'Admin', amount: adminProfit },
       { label: 'Laba Listrik', amount: griyaBayarProfit },
       { label: 'Propana', amount: propanaProfit },
-      ...productRows,
+      ...finalProductRows,
     ];
 
     return {
       rows,
       total: rows.reduce((sum, row) => sum + row.amount, 0),
     };
-  }, [categories, categoryKeyByName, productCategoryMap, shiftBrilinkTransactions, shiftTransactions]);
+  }, [categories, categoryKeyByName, combinedCategories, productCategoryMap, shiftBrilinkTransactions, shiftTransactions]);
 
   const openShiftPrintModal = () => {
     setSelectedUserIds(prev => {

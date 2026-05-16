@@ -215,10 +215,26 @@ export interface CategoryFormData {
   isActive: boolean;
 }
 
+export interface CombinedCategory {
+  id: string;
+  name: string;
+  categoryIds: string[];
+  categoryNames: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CombinedCategoryFormData {
+  name: string;
+  categoryIds: string[];
+  categoryNames: string[];
+}
+
 // Audit Log types
 export type AuditModule = 
   | 'products'
   | 'categories'
+  | 'combined_categories'
   | 'sales'
   | 'brilink'
   | 'users'
