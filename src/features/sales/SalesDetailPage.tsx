@@ -29,7 +29,7 @@ const getDefaultShift = (): ShiftKey => {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
-  return (currentHour < 13 || (currentHour === 13 && currentMinute === 0)) ? 'pagi' : 'siang';
+  return (currentHour < 13 || (currentHour === 13 && currentMinute <= 30)) ? 'pagi' : 'siang';
 };
 
 const getShiftRange = (shift: ShiftKey, baseDate = new Date()) => {
@@ -38,9 +38,9 @@ const getShiftRange = (shift: ShiftKey, baseDate = new Date()) => {
 
   if (shift === 'pagi') {
     start.setHours(0, 0, 0, 0);
-    end.setHours(13, 0, 59, 999);
+    end.setHours(13, 30, 59, 999);
   } else {
-    start.setHours(13, 1, 0, 0);
+    start.setHours(13, 31, 0, 0);
     end.setHours(23, 59, 59, 999);
   }
 
@@ -50,7 +50,7 @@ const getShiftRange = (shift: ShiftKey, baseDate = new Date()) => {
 const getShiftName = (shift: ShiftKey) => shift === 'pagi' ? 'Pagi' : 'Siang';
 
 const getShiftLabel = (shift: ShiftKey) => (
-  shift === 'pagi' ? 'Shift Pagi (00:00-13:00)' : 'Shift Siang (13:01-23:59)'
+  shift === 'pagi' ? 'Shift Pagi (00:00-13:30)' : 'Shift Siang (13:31-23:59)'
 );
 
 const formatReceiptDate = (date: Date) => {
@@ -218,7 +218,7 @@ export function SalesDetailPage() {
     setDeleteConfirm(null);
   };
 
-  // Calculate shift-based summary (Shift 1: 00:00-13:00, Shift 2: 13:01-23:59)
+  // Calculate shift-based summary (Shift 1: 00:00-13:30, Shift 2: 13:31-23:59)
   const shiftSummary = useMemo(() => {
     const { start: shiftStart, end: shiftEnd } = getShiftRange(selectedShift);
     

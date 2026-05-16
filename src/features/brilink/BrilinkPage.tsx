@@ -427,25 +427,25 @@ export function BrilinkPage() {
     }
   };
 
-  // Calculate shift-based summary (Shift 1: 00:00-13:00, Shift 2: 13:01-23:59)
+  // Calculate shift-based summary (Shift 1: 00:00-13:30, Shift 2: 13:31-23:59)
   const shiftSummary = useMemo(() => {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
     // Determine current shift start time
-    // Shift 1: 00:00-13:00 (inclusive of 13:00)
-    // Shift 2: 13:01-23:59
-    const isShift1 = currentHour < 13 || (currentHour === 13 && currentMinute === 0);
+    // Shift 1: 00:00-13:30 (inclusive of 13:30)
+    // Shift 2: 13:31-23:59
+    const isShift1 = currentHour < 13 || (currentHour === 13 && currentMinute <= 30);
     
     const shiftStart = new Date(now);
     const shiftEnd = new Date(now);
     
     if (isShift1) {
       shiftStart.setHours(0, 0, 0, 0);
-      shiftEnd.setHours(13, 0, 59, 999); // End of 13:00
+      shiftEnd.setHours(13, 30, 59, 999); // End of 13:30
     } else {
-      shiftStart.setHours(13, 1, 0, 0);
+      shiftStart.setHours(13, 31, 0, 0);
       shiftEnd.setHours(23, 59, 59, 999); // End of day
     }
     
@@ -473,7 +473,7 @@ export function BrilinkPage() {
       griyaBayarProfit,
       propanaProfit,
       totalTransactions: shiftTransactions.length,
-      shiftLabel: isShift1 ? 'Shift Pagi (00:00-13:00)' : 'Shift Siang (13:01-23:59)',
+      shiftLabel: isShift1 ? 'Shift Pagi (00:00-13:30)' : 'Shift Siang (13:31-23:59)',
     };
   }, [transactions]);
 
