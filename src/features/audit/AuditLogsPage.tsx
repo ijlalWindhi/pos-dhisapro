@@ -7,6 +7,7 @@ import type { AuditModule, AuditAction } from '@/types';
 const moduleLabels: Record<AuditModule, string> = {
   products: 'Produk',
   categories: 'Kategori',
+  combined_categories: 'Kategori Gabungan',
   sales: 'Penjualan',
   brilink: 'BRILink',
   users: 'Pengguna',
