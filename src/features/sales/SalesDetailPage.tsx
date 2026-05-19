@@ -732,7 +732,7 @@ export function SalesDetailPage() {
             <thead>
               <tr>
                 <th className="shift-print-label">Jenis</th>
-                <th className="shift-print-amount">Jumlah</th>
+                <th className="shift-print-amount text-right!">Jumlah</th>
               </tr>
             </thead>
             <tbody>

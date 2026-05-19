@@ -562,7 +562,7 @@
   .shift-print-title {
     margin: 0 0 8mm;
     color: #000000;
-    font-size: 18pt;
+    font-size: 24pt;
     font-weight: 700;
     line-height: 1.1;
     text-align: center;
@@ -570,13 +570,13 @@
 
   .shift-print-meta {
     margin-bottom: 7mm;
-    font-size: 9pt;
+    font-size: 14pt;
     line-height: 1.35;
   }
 
   .shift-print-meta-row {
     display: grid;
-    grid-template-columns: 28mm 4mm 1fr;
+    grid-template-columns: 40mm 4mm 1fr;
     gap: 0;
     align-items: start;
     margin-bottom: 1.5mm;
@@ -608,12 +608,14 @@
   .shift-print-label {
     width: 42%;
     font-weight: 600;
+    font-size: 18.9pt;
   }
 
   .shift-print-amount {
     width: 58%;
     text-align: right;
     white-space: nowrap;
+    font-size: 18.9pt;
   }
 
   .shift-print-total-row td {
