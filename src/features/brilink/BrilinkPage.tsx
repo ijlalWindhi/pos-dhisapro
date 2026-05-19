@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search, ClipboardList, Database } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search, ClipboardList, Database, Printer } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MainLayout } from '@/components/layout';
@@ -284,6 +285,7 @@ export function BrilinkPage() {
   const [editingTransaction, setEditingTransaction] = useState<BRILinkTransaction | null>(null);
   const [formData, setFormData] = useState<BRILinkFormData>(emptyFormData);
   const [selectedSavedAccount, setSelectedSavedAccount] = useState('');
+  const [printingTransaction, setPrintingTransaction] = useState<BRILinkTransaction | null>(null);
 
   const formTransactionTypes = useMemo(() => {
     if (!editingTransaction) return baseTransactionTypes;
@@ -483,6 +485,46 @@ export function BrilinkPage() {
   const isGriyaBayar = formData.transactionType === 'griya_bayar';
   const requiresEndingBalance = ['transfer', 'cash_withdrawal', 'topup'].includes(formData.transactionType);
 
+  const handlePrintReceipt = (tx: BRILinkTransaction) => {
+    setPrintingTransaction(tx);
+    const styleEl = document.createElement('style');
+    styleEl.id = 'brilink-thermal-print-style';
+    styleEl.textContent = `
+      @media print {
+        @page {
+          size: 58mm auto !important;
+          margin: 0 !important;
+        }
+        html, body {
+          width: 58mm !important;
+          min-height: 0 !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+        }
+        body > #root {
+          display: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(styleEl);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        const cleanup = () => {
+          const el = document.getElementById('brilink-thermal-print-style');
+          if (el) el.remove();
+          setPrintingTransaction(null);
+          window.removeEventListener('afterprint', cleanup);
+        };
+        window.addEventListener('afterprint', cleanup);
+        setTimeout(cleanup, 2000);
+      });
+    });
+  };
+
   // Define columns for DataTable
   const columns = useMemo<ColumnDef<BRILinkTransaction>[]>(() => [
     {
@@ -554,13 +596,20 @@ export function BrilinkPage() {
       id: 'actions',
       header: 'Aksi',
       cell: ({ row }) => (
-        <div className="flex justify-center">
+        <div className="flex items-center justify-center gap-1">
           <button
             className="btn btn-ghost btn-icon btn-sm"
             title="Edit"
             onClick={() => openEditForm(row.original)}
           >
             <Edit2 size={16} />
+          </button>
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            title="Cetak Struk"
+            onClick={() => handlePrintReceipt(row.original)}
+          >
+            <Printer size={16} />
           </button>
         </div>
       ),
@@ -941,6 +990,118 @@ export function BrilinkPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {printingTransaction && createPortal(
+        <div className="brilink-receipt-area">
+          <div className="brilink-receipt">
+            <div className="brilink-receipt-header">
+              <div className="brilink-receipt-store">UD. Cahaya</div>
+              <div className="brilink-receipt-subtitle">Struk Transaksi</div>
+              <div className="brilink-receipt-subtitle">
+                {profitCategoryLabels[printingTransaction.profitCategory] || 'BRILink'}
+              </div>
+            </div>
+            <div className="brilink-receipt-divider">============================</div>
+            <div className="brilink-receipt-row">
+              <span>Tanggal</span>
+              <span>
+                {printingTransaction.createdAt.toLocaleDateString('id-ID', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })}
+              </span>
+            </div>
+            <div className="brilink-receipt-row">
+              <span>Jam</span>
+              <span>
+                {printingTransaction.createdAt.toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </span>
+            </div>
+            <div className="brilink-receipt-row">
+              <span>No Ref</span>
+              <span className="brilink-receipt-ref">{printingTransaction.id.slice(-10).toUpperCase()}</span>
+            </div>
+            <div className="brilink-receipt-row">
+              <span>Jenis</span>
+              <span>
+                {allTransactionTypes.find((t) => t.value === printingTransaction.transactionType)?.label ||
+                  printingTransaction.transactionType}
+              </span>
+            </div>
+            <div className="brilink-receipt-divider">----------------------------</div>
+            {printingTransaction.profitCategory === 'propana' ? (
+              <>
+                <div className="brilink-receipt-row">
+                  <span>No HP</span>
+                  <span>{printingTransaction.accountNumber || '-'}</span>
+                </div>
+                {printingTransaction.customerName && (
+                  <div className="brilink-receipt-row">
+                    <span>Pelanggan</span>
+                    <span>{toTitleCase(printingTransaction.customerName)}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="brilink-receipt-row">
+                  <span>Nama</span>
+                  <span>
+                    {printingTransaction.accountName
+                      ? toTitleCase(printingTransaction.accountName)
+                      : '-'}
+                  </span>
+                </div>
+                <div className="brilink-receipt-row">
+                  <span>No Rek</span>
+                  <span>{printingTransaction.accountNumber || '-'}</span>
+                </div>
+                {printingTransaction.bankName && (
+                  <div className="brilink-receipt-row">
+                    <span>Bank</span>
+                    <span>{toUpperBank(printingTransaction.bankName)}</span>
+                  </div>
+                )}
+                {printingTransaction.customerName && (
+                  <div className="brilink-receipt-row">
+                    <span>Pelanggan</span>
+                    <span>{toTitleCase(printingTransaction.customerName)}</span>
+                  </div>
+                )}
+              </>
+            )}
+            <div className="brilink-receipt-divider">----------------------------</div>
+            <div className="brilink-receipt-row">
+              <span>Nominal</span>
+              <span>{formatCurrency(printingTransaction.amount)}</span>
+            </div>
+            <div className="brilink-receipt-row">
+              <span>Biaya Admin</span>
+              <span>{formatCurrency(printingTransaction.adminFee)}</span>
+            </div>
+            <div className="brilink-receipt-divider">----------------------------</div>
+            <div className="brilink-receipt-row brilink-receipt-total">
+              <span>TOTAL</span>
+              <span>{formatCurrency(printingTransaction.amount + printingTransaction.adminFee)}</span>
+            </div>
+            <div className="brilink-receipt-divider">============================</div>
+            <div className="brilink-receipt-row">
+              <span>Operator</span>
+              <span>{printingTransaction.operatorName}</span>
+            </div>
+            <div className="brilink-receipt-footer">
+              <div>Terima Kasih</div>
+              <div>atas kunjungan Anda</div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </MainLayout>
   );

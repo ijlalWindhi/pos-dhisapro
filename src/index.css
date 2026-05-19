@@ -622,3 +622,98 @@
     font-weight: 700;
   }
 }
+
+.brilink-receipt-area {
+  display: none;
+}
+
+@media print {
+  .brilink-receipt-area,
+  .brilink-receipt-area * {
+    visibility: visible !important;
+  }
+
+  .brilink-receipt-area {
+    display: block !important;
+    width: 58mm;
+    margin: 0;
+    color: #000000;
+    background: #ffffff;
+    font-family: 'Courier New', Courier, monospace;
+  }
+
+  .brilink-receipt {
+    box-sizing: border-box;
+    width: 55mm;
+    margin: 0 auto;
+    padding: 2mm 0;
+    background: #ffffff;
+    color: #000000;
+    font-size: 9pt;
+    line-height: 1.3;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .brilink-receipt-header {
+    text-align: center;
+    margin-bottom: 2mm;
+  }
+
+  .brilink-receipt-store {
+    font-size: 12pt;
+    font-weight: 700;
+    margin-bottom: 0.5mm;
+  }
+
+  .brilink-receipt-subtitle {
+    font-size: 9pt;
+    font-weight: 600;
+  }
+
+  .brilink-receipt-divider {
+    text-align: center;
+    font-size: 9pt;
+    letter-spacing: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0.8mm 0;
+  }
+
+  .brilink-receipt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5mm;
+    font-size: 9pt;
+    margin-bottom: 0.5mm;
+    word-break: break-word;
+  }
+
+  .brilink-receipt-row > span:first-child {
+    flex-shrink: 0;
+  }
+
+  .brilink-receipt-row > span:last-child {
+    text-align: right;
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  .brilink-receipt-ref {
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.3pt;
+  }
+
+  .brilink-receipt-total {
+    font-weight: 700;
+    font-size: 10pt;
+  }
+
+  .brilink-receipt-footer {
+    text-align: center;
+    margin-top: 2.5mm;
+    font-size: 9pt;
+    line-height: 1.4;
+  }
+}
