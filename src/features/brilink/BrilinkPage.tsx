@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Wallet, ArrowRightLeft, ArrowDownToLine, ArrowUpFromLine, Smartphone, CreditCard, X, Edit2, Home, Flame, Save, Search, ClipboardList, Database, Printer } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
@@ -45,6 +46,59 @@ const profitCategoryLabels: Record<BRILinkProfitCategory, string> = {
   griya_bayar: 'Griya Bayar',
   propana: 'Propana',
 };
+
+const receiptAddress = 'Jl. Lurah Surodarmo No. 53 Nganjuk';
+
+const formatReceiptDateTime = (date: Date) => {
+  const dateText = date.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).replace(/\//g, '-');
+  const timeText = date.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+  return `${dateText} ${timeText}`;
+};
+
+const getReceiptTransactionLabel = (tx: BRILinkTransaction) => {
+  const typeLabel = allTransactionTypes.find((t) => t.value === tx.transactionType)?.label || tx.transactionType;
+
+  if (tx.profitCategory === 'brilink' && tx.bankName) {
+    return `${typeLabel} ${toUpperBank(tx.bankName)}`;
+  }
+
+  return typeLabel;
+};
+
+const getReceiptAmountLabel = (transactionType: BRILinkTransactionType) => {
+  if (transactionType === 'transfer') return 'Nominal';
+  if (transactionType === 'cash_withdrawal') return 'Nominal';
+  if (transactionType === 'topup') return 'Nominal';
+
+  return 'Nominal';
+};
+
+function ReceiptRow({
+  label,
+  children,
+  className,
+}: Readonly<{
+  label: string;
+  children: ReactNode;
+  className?: string;
+}>) {
+  return (
+    <div className={className ? `brilink-receipt-row ${className}` : 'brilink-receipt-row'}>
+      <span>{label}</span>
+      <span>:</span>
+      <span>{children}</span>
+    </div>
+  );
+}
 
 // Searchable Account Select Component
 function SearchableAccountSelect({
@@ -486,6 +540,8 @@ export function BrilinkPage() {
   const requiresEndingBalance = ['transfer', 'cash_withdrawal', 'topup'].includes(formData.transactionType);
 
   const handlePrintReceipt = (tx: BRILinkTransaction) => {
+    if (tx.transactionType === 'cash_withdrawal') return;
+
     setPrintingTransaction(tx);
     const styleEl = document.createElement('style');
     styleEl.id = 'brilink-thermal-print-style';
@@ -604,13 +660,15 @@ export function BrilinkPage() {
           >
             <Edit2 size={16} />
           </button>
-          <button
-            className="btn btn-ghost btn-icon btn-sm"
-            title="Cetak Struk"
-            onClick={() => handlePrintReceipt(row.original)}
-          >
-            <Printer size={16} />
-          </button>
+          {row.original.transactionType !== 'cash_withdrawal' && (
+            <button
+              className="btn btn-ghost btn-icon btn-sm"
+              title="Cetak Struk"
+              onClick={() => handlePrintReceipt(row.original)}
+            >
+              <Printer size={16} />
+            </button>
+          )}
         </div>
       ),
     },
@@ -998,103 +1056,45 @@ export function BrilinkPage() {
             <div className="brilink-receipt-header">
               <div className="brilink-receipt-store">UD. Cahaya</div>
               <div className="brilink-receipt-subtitle">Struk Transaksi</div>
-              <div className="brilink-receipt-subtitle">
-                {profitCategoryLabels[printingTransaction.profitCategory] || 'BRILink'}
-              </div>
+              <div className="brilink-receipt-address">{receiptAddress}</div>
             </div>
             <div className="brilink-receipt-divider">============================</div>
-            <div className="brilink-receipt-row">
-              <span>Tanggal</span>
-              <span>
-                {printingTransaction.createdAt.toLocaleDateString('id-ID', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                })}
-              </span>
-            </div>
-            <div className="brilink-receipt-row">
-              <span>Jam</span>
-              <span>
-                {printingTransaction.createdAt.toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                })}
-              </span>
-            </div>
-            <div className="brilink-receipt-row">
-              <span>No Ref</span>
+            <div className="brilink-receipt-datetime">{formatReceiptDateTime(printingTransaction.createdAt)}</div>
+            <ReceiptRow label="No Ref">
               <span className="brilink-receipt-ref">{printingTransaction.id.slice(-10).toUpperCase()}</span>
-            </div>
-            <div className="brilink-receipt-row">
-              <span>Jenis</span>
-              <span>
-                {allTransactionTypes.find((t) => t.value === printingTransaction.transactionType)?.label ||
-                  printingTransaction.transactionType}
-              </span>
-            </div>
+            </ReceiptRow>
+            <ReceiptRow label="Transaksi">{getReceiptTransactionLabel(printingTransaction)}</ReceiptRow>
             <div className="brilink-receipt-divider">----------------------------</div>
             {printingTransaction.profitCategory === 'propana' ? (
               <>
-                <div className="brilink-receipt-row">
-                  <span>No HP</span>
-                  <span>{printingTransaction.accountNumber || '-'}</span>
-                </div>
+                <ReceiptRow label="No HP">{printingTransaction.accountNumber || '-'}</ReceiptRow>
                 {printingTransaction.customerName && (
-                  <div className="brilink-receipt-row">
-                    <span>Pelanggan</span>
-                    <span>{toTitleCase(printingTransaction.customerName)}</span>
-                  </div>
+                  <ReceiptRow label="Pelanggan">{toTitleCase(printingTransaction.customerName)}</ReceiptRow>
                 )}
               </>
             ) : (
               <>
-                <div className="brilink-receipt-row">
-                  <span>Nama</span>
-                  <span>
-                    {printingTransaction.accountName
-                      ? toTitleCase(printingTransaction.accountName)
-                      : '-'}
-                  </span>
-                </div>
-                <div className="brilink-receipt-row">
-                  <span>No Rek</span>
-                  <span>{printingTransaction.accountNumber || '-'}</span>
-                </div>
+                <ReceiptRow label="No Rekening">{printingTransaction.accountNumber || '-'}</ReceiptRow>
+                <ReceiptRow label="Nama">
+                  {printingTransaction.accountName
+                    ? toTitleCase(printingTransaction.accountName)
+                    : '-'}
+                </ReceiptRow>
                 {printingTransaction.bankName && (
-                  <div className="brilink-receipt-row">
-                    <span>Bank</span>
-                    <span>{toUpperBank(printingTransaction.bankName)}</span>
-                  </div>
+                  <ReceiptRow label="Bank">{toUpperBank(printingTransaction.bankName)}</ReceiptRow>
                 )}
                 {printingTransaction.customerName && (
-                  <div className="brilink-receipt-row">
-                    <span>Pelanggan</span>
-                    <span>{toTitleCase(printingTransaction.customerName)}</span>
-                  </div>
+                  <ReceiptRow label="Pelanggan">{toTitleCase(printingTransaction.customerName)}</ReceiptRow>
                 )}
               </>
             )}
             <div className="brilink-receipt-divider">----------------------------</div>
-            <div className="brilink-receipt-row">
-              <span>Nominal</span>
-              <span>{formatCurrency(printingTransaction.amount)}</span>
-            </div>
-            <div className="brilink-receipt-row">
-              <span>Biaya Admin</span>
-              <span>{formatCurrency(printingTransaction.adminFee)}</span>
-            </div>
-            <div className="brilink-receipt-divider">----------------------------</div>
-            <div className="brilink-receipt-row brilink-receipt-total">
-              <span>TOTAL</span>
-              <span>{formatCurrency(printingTransaction.amount + printingTransaction.adminFee)}</span>
-            </div>
+            <ReceiptRow label={getReceiptAmountLabel(printingTransaction.transactionType)}>
+              {formatCurrency(printingTransaction.amount)}
+            </ReceiptRow>
+            <ReceiptRow label="Status">Sukses</ReceiptRow>
             <div className="brilink-receipt-divider">============================</div>
-            <div className="brilink-receipt-row">
-              <span>Operator</span>
-              <span>{printingTransaction.operatorName}</span>
-            </div>
+            <ReceiptRow label="Operator">{printingTransaction.operatorName}</ReceiptRow>
             <div className="brilink-receipt-footer">
               <div>Terima Kasih</div>
               <div>atas kunjungan Anda</div>
