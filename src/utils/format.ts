@@ -1,6 +1,7 @@
 // Format number with thousand separator (dot)
 export const formatNumber = (value: number): string => {
-  if (value === 0) return '';
+  // Show explicit 0 so inputs can display and accept the value 0
+  if (value === 0) return '0';
   return value.toLocaleString('id-ID');
 };
 
@@ -29,6 +30,6 @@ export const handleNumberInputChange = (
   const numericValue = value.replace(/\D/g, '');
   const numberValue = parseInt(numericValue, 10) || 0;
   setter(numberValue);
-  // Return formatted string for display
-  return numberValue > 0 ? numberValue.toLocaleString('id-ID') : '';
+  // Return formatted string for display; include 0 so the input shows '0'
+  return numberValue >= 0 ? numberValue.toLocaleString('id-ID') : '';
 };
