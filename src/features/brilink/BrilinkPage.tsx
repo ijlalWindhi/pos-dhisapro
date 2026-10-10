@@ -58,7 +58,6 @@ const formatReceiptDateTime = (date: Date) => {
   const timeText = date.toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
   });
 
   return `${dateText} ${timeText}`;
@@ -94,7 +93,6 @@ function ReceiptRow({
   return (
     <div className={className ? `brilink-receipt-row ${className}` : 'brilink-receipt-row'}>
       <span>{label}</span>
-      <span>:</span>
       <span>{children}</span>
     </div>
   );
@@ -1058,13 +1056,13 @@ export function BrilinkPage() {
               <div className="brilink-receipt-subtitle">Struk Transaksi</div>
               <div className="brilink-receipt-address">{receiptAddress}</div>
             </div>
-            <div className="brilink-receipt-divider">============================</div>
-            <div className="brilink-receipt-datetime">{formatReceiptDateTime(printingTransaction.createdAt)}</div>
+            <div className="brilink-receipt-divider" />
+            <ReceiptRow label="Tanggal">{formatReceiptDateTime(printingTransaction.createdAt)}</ReceiptRow>
             <ReceiptRow label="No Ref">
               <span className="brilink-receipt-ref">{printingTransaction.id.slice(-10).toUpperCase()}</span>
             </ReceiptRow>
             <ReceiptRow label="Transaksi">{getReceiptTransactionLabel(printingTransaction)}</ReceiptRow>
-            <div className="brilink-receipt-divider">----------------------------</div>
+            <div className="brilink-receipt-divider" />
             {printingTransaction.profitCategory === 'propana' ? (
               <>
                 <ReceiptRow label="No HP">{printingTransaction.accountNumber || '-'}</ReceiptRow>
@@ -1088,12 +1086,12 @@ export function BrilinkPage() {
                 )}
               </>
             )}
-            <div className="brilink-receipt-divider">----------------------------</div>
+            <div className="brilink-receipt-divider" />
             <ReceiptRow label={getReceiptAmountLabel(printingTransaction.transactionType)}>
               {formatCurrency(printingTransaction.amount)}
             </ReceiptRow>
             <ReceiptRow label="Status">Sukses</ReceiptRow>
-            <div className="brilink-receipt-divider">============================</div>
+            <div className="brilink-receipt-divider" />
             <ReceiptRow label="Operator">{printingTransaction.operatorName}</ReceiptRow>
             <div className="brilink-receipt-footer">
               <div>Terima Kasih</div>
