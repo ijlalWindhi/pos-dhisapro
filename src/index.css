@@ -647,7 +647,7 @@
   .brilink-receipt {
     box-sizing: border-box;
     width: 100%;
-    padding: 1mm 0 2mm;
+    padding: 0;
     background: #ffffff;
     color: #000000;
     font-size: 9pt;
@@ -671,7 +671,7 @@
 
   .brilink-receipt-divider {
     border-top: 2px dashed #000000;
-    margin: 1mm 0;
+    margin: 0.5mm 0;
   }
 
   .brilink-receipt-row {
@@ -696,6 +696,5 @@
 
   .brilink-receipt-footer {
     text-align: center;
-    margin-top: 1.5mm;
   }
 }

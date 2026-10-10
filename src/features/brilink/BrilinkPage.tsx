@@ -1116,7 +1116,6 @@ export function BrilinkPage() {
             </ReceiptRow>
             <ReceiptRow label="Status">Sukses</ReceiptRow>
             <div className="brilink-receipt-divider" />
-            <ReceiptRow label="Operator">{printingTransaction.operatorName}</ReceiptRow>
             <div className="brilink-receipt-footer">
               <div>Terima Kasih</div>
               <div>atas kunjungan Anda</div>
