@@ -545,41 +545,31 @@ export function BrilinkPage() {
     if (tx.transactionType === 'cash_withdrawal') return;
 
     setPrintingTransaction(tx);
+    const styleEl = document.createElement('style');
+    styleEl.id = 'brilink-thermal-print-style';
+    styleEl.textContent = `
+      @media print {
+        @page {
+          size: 58mm auto !important;
+          margin: 0 !important;
+        }
+        html, body {
+          width: 58mm !important;
+          min-height: 0 !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+        }
+        body > #root {
+          display: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(styleEl);
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        // Size the page to the receipt itself so the printer doesn't feed blank paper after it
-        const area = document.querySelector<HTMLElement>('.brilink-receipt-area');
-        let heightMm = 0;
-        if (area) {
-          area.style.cssText = 'display:block;position:fixed;left:-9999px;top:0';
-          heightMm = Math.ceil((area.getBoundingClientRect().height * 25.4) / 96);
-          area.style.cssText = '';
-        }
-
-        const styleEl = document.createElement('style');
-        styleEl.id = 'brilink-thermal-print-style';
-        styleEl.textContent = `
-          @media print {
-            @page {
-              size: 58mm ${heightMm + 1}mm !important;
-              margin: 0 !important;
-            }
-            html, body {
-              width: 58mm !important;
-              min-height: 0 !important;
-              height: auto !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #ffffff !important;
-            }
-            body > #root {
-              display: none !important;
-            }
-          }
-        `;
-        document.head.appendChild(styleEl);
-
         window.print();
         const cleanup = () => {
           const el = document.getElementById('brilink-thermal-print-style');
