@@ -131,6 +131,7 @@ export interface BRILinkTransaction {
   endingBalance?: number;
   customerName?: string;
   customerPhone?: string;
+  senderName?: string;
   referenceNo?: string; // legacy - for backward compatibility
   operatorId: string;
   operatorName: string;
@@ -177,6 +178,7 @@ export interface BRILinkFormData {
   endingBalance?: number;
   customerName?: string;
   customerPhone?: string;
+  senderName?: string;
   saveAccount?: boolean;
 }
 

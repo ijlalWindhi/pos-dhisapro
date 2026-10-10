@@ -108,6 +108,7 @@ export const brilinkService = {
       endingBalance: data.endingBalance || null,
       customerName: data.customerName || null,
       customerPhone: data.customerPhone || null,
+      senderName: data.transactionType === 'propana' ? null : data.senderName || null,
       operatorId,
       operatorName,
       createdAt: serverTimestamp(),
@@ -178,6 +179,7 @@ export const brilinkService = {
       endingBalance: data.endingBalance || null,
       customerName: data.customerName || null,
       customerPhone: data.customerPhone || null,
+      senderName: data.transactionType === 'propana' ? null : data.senderName || null,
     });
   },
 

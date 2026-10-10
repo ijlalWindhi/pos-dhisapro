@@ -47,6 +47,8 @@ const profitCategoryLabels: Record<BRILinkProfitCategory, string> = {
   propana: 'Propana',
 };
 
+const senderOptions = ['Arista Trisnantari', 'Hartoyo'];
+
 const receiptAddress = 'Jl. Lurah Surodarmo No. 53 Nganjuk';
 
 const formatReceiptDateTime = (date: Date) => {
@@ -322,6 +324,7 @@ const emptyFormData: BRILinkFormData = {
   adminFee: 0,
   profit: 0,
   customerName: '',
+  senderName: '',
   saveAccount: false,
 };
 
@@ -394,6 +397,7 @@ export function BrilinkPage() {
       profit: tx.profit,
       endingBalance: tx.endingBalance || 0,
       customerName: tx.customerName || '',
+      senderName: tx.senderName || '',
       saveAccount: false,
     });
     setSelectedSavedAccount('');
@@ -884,6 +888,23 @@ export function BrilinkPage() {
                 ) : (
                   <>
                     {/* Standard BRILink / Griya Bayar Fields */}
+                    <div className="form-group">
+                      <label className="form-label form-label-required" htmlFor="brilink-sender">
+                        Pengirim
+                      </label>
+                      <select
+                        id="brilink-sender"
+                        className="form-select"
+                        value={formData.senderName || ''}
+                        onChange={(e) => setFormData({ ...formData, senderName: e.target.value })}
+                        required
+                      >
+                        <option value="" disabled>Pilih pengirim</option>
+                        {senderOptions.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="grid grid-3">
                       <div className="form-group">
                         <label className="form-label form-label-required" htmlFor="brilink-account-number">
@@ -1072,6 +1093,9 @@ export function BrilinkPage() {
               </>
             ) : (
               <>
+                {printingTransaction.senderName && (
+                  <ReceiptRow label="Pengirim">{printingTransaction.senderName}</ReceiptRow>
+                )}
                 <ReceiptRow label="No Rekening">{printingTransaction.accountNumber || '-'}</ReceiptRow>
                 <ReceiptRow label="Nama">
                   {printingTransaction.accountName
