@@ -1087,6 +1087,7 @@ export function BrilinkPage() {
             <ReceiptRow label={getReceiptTransactionLabel(printingTransaction)}>
               {formatCurrency(printingTransaction.amount)}
             </ReceiptRow>
+            <ReceiptRow label="Status">Berhasil</ReceiptRow>
             <div className="brilink-receipt-footer">Terima kasih</div>
           </div>
         </div>,
