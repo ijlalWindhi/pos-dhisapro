@@ -65,23 +65,8 @@ const formatReceiptDateTime = (date: Date) => {
   return `${dateText} ${timeText}`;
 };
 
-const getReceiptTransactionLabel = (tx: BRILinkTransaction) => {
-  const typeLabel = allTransactionTypes.find((t) => t.value === tx.transactionType)?.label || tx.transactionType;
-
-  if (tx.profitCategory === 'brilink' && tx.bankName) {
-    return `${typeLabel} ${toUpperBank(tx.bankName)}`;
-  }
-
-  return typeLabel;
-};
-
-const getReceiptAmountLabel = (transactionType: BRILinkTransactionType) => {
-  if (transactionType === 'transfer') return 'Nominal';
-  if (transactionType === 'cash_withdrawal') return 'Nominal';
-  if (transactionType === 'topup') return 'Nominal';
-
-  return 'Nominal';
-};
+const getReceiptTransactionLabel = (tx: BRILinkTransaction) =>
+  allTransactionTypes.find((t) => t.value === tx.transactionType)?.label || tx.transactionType;
 
 function ReceiptRow({
   label,
@@ -1074,52 +1059,35 @@ export function BrilinkPage() {
           <div className="brilink-receipt">
             <div className="brilink-receipt-header">
               <div className="brilink-receipt-store">UD. Cahaya</div>
-              <div className="brilink-receipt-subtitle">Struk Transaksi</div>
               <div className="brilink-receipt-address">{receiptAddress}</div>
             </div>
             <div className="brilink-receipt-divider" />
-            <ReceiptRow label="Tanggal">{formatReceiptDateTime(printingTransaction.createdAt)}</ReceiptRow>
-            <ReceiptRow label="No Ref">
-              <span className="brilink-receipt-ref">{printingTransaction.id.slice(-10).toUpperCase()}</span>
-            </ReceiptRow>
-            <ReceiptRow label="Transaksi">{getReceiptTransactionLabel(printingTransaction)}</ReceiptRow>
-            <div className="brilink-receipt-divider" />
+            <div>{formatReceiptDateTime(printingTransaction.createdAt)}</div>
             {printingTransaction.profitCategory === 'propana' ? (
-              <>
-                <ReceiptRow label="No HP">{printingTransaction.accountNumber || '-'}</ReceiptRow>
-                {printingTransaction.customerName && (
-                  <ReceiptRow label="Pelanggan">{toTitleCase(printingTransaction.customerName)}</ReceiptRow>
-                )}
-              </>
+              <ReceiptRow label="No HP">{printingTransaction.accountNumber || '-'}</ReceiptRow>
             ) : (
               <>
                 {printingTransaction.senderName && (
                   <ReceiptRow label="Pengirim">{printingTransaction.senderName}</ReceiptRow>
                 )}
-                <ReceiptRow label="No Rekening">{printingTransaction.accountNumber || '-'}</ReceiptRow>
-                <ReceiptRow label="Nama">
+                <ReceiptRow label="Penerima">
                   {printingTransaction.accountName
                     ? toTitleCase(printingTransaction.accountName)
                     : '-'}
                 </ReceiptRow>
-                {printingTransaction.bankName && (
-                  <ReceiptRow label="Bank">{toUpperBank(printingTransaction.bankName)}</ReceiptRow>
-                )}
-                {printingTransaction.customerName && (
-                  <ReceiptRow label="Pelanggan">{toTitleCase(printingTransaction.customerName)}</ReceiptRow>
-                )}
+                <ReceiptRow label="">
+                  {[
+                    printingTransaction.bankName && toUpperBank(printingTransaction.bankName),
+                    printingTransaction.accountNumber,
+                  ].filter(Boolean).join(' ') || '-'}
+                </ReceiptRow>
               </>
             )}
             <div className="brilink-receipt-divider" />
-            <ReceiptRow label={getReceiptAmountLabel(printingTransaction.transactionType)}>
+            <ReceiptRow label={getReceiptTransactionLabel(printingTransaction)}>
               {formatCurrency(printingTransaction.amount)}
             </ReceiptRow>
-            <ReceiptRow label="Status">Sukses</ReceiptRow>
-            <div className="brilink-receipt-divider" />
-            <div className="brilink-receipt-footer">
-              <div>Terima Kasih</div>
-              <div>atas kunjungan Anda</div>
-            </div>
+            <div className="brilink-receipt-footer">Terima kasih</div>
           </div>
         </div>,
         document.body
